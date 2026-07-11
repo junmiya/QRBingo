@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QRBingo - QRコードビンゴゲーム</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎱</text></svg>">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="app-header">
+    <h1 class="logo"><span class="q">QR</span>Bingo</h1>
+    <p class="tagline">QRコードで参加できる、サーバー不要のビンゴゲーム</p>
+  </header>
+
+  <main>
+    <a class="big-choice" href="host.html">
+      🎪 ゲームを主催する(ホスト)
+      <small>ゲームを作成して参加用QRコードを表示し、番号を抽選します</small>
+    </a>
+
+    <a class="big-choice" href="player.html">
+      🎫 ゲームに参加する(プレイヤー)
+      <small>ホストのQRコードを読み取るか、ゲームコードを入力してカードを受け取ります</small>
+    </a>
+
+    <section class="panel">
+      <h2>あそびかた</h2>
+      <p class="hint">
+        1. ホストが「ゲームを主催する」でゲームを作成すると、参加用QRコードが表示されます。<br>
+        2. 参加者はスマホでQRコードを読み取ると、自分だけのビンゴカードが配られます。<br>
+        3. ホストが番号を抽選し、読み上げます。参加者は自分のカードの番号をタップしてマークします。<br>
+        4. 縦・横・斜めのいずれか1列が揃ったらビンゴ!カードのQRコードをホストに見せると、その場で正当性を検証できます。
+      </p>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    QRBingo — ブラウザだけで動く75球ビンゴ
+  </footer>
+</body>
+</html>

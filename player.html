@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>プレイヤー - QRBingo</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎱</text></svg>">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="app-header">
+    <h1 class="logo"><a href="index.html"><span class="q">QR</span>Bingo</a></h1>
+    <p class="tagline">プレイヤー画面</p>
+  </header>
+
+  <main>
+    <!-- ゲームコード入力(QR以外からの参加) -->
+    <section class="panel" id="join-form" hidden>
+      <h2>🎫 ゲームに参加</h2>
+      <p class="hint">ホストの画面に表示されているゲームコード(4文字)を入力してください。</p>
+      <div style="display:flex; gap:8px; margin-top:10px">
+        <input type="text" id="game-input" placeholder="例: ABCD" maxlength="8" autocomplete="off">
+        <button class="btn-primary" id="join-btn" style="flex-shrink:0; width:auto">参加</button>
+      </div>
+      <p class="hint" id="join-error" style="color:#ff8fa3"></p>
+    </section>
+
+    <!-- ゲーム画面 -->
+    <div id="game-area" hidden>
+      <div class="status-banner" id="status-banner">番号が呼ばれたらタップしてマーク!</div>
+
+      <section class="panel">
+        <h2>🎟️ あなたのカード <span style="float:right; color:var(--muted); font-size:.8rem; font-weight:400">ゲーム: <span id="game-label"></span></span></h2>
+        <div class="card-wrap">
+          <table class="bingo" id="card"></table>
+        </div>
+        <p class="card-id-label" id="card-id-label"></p>
+        <div class="btn-row" style="margin-top:10px">
+          <button class="btn-ghost" id="show-qr-btn">📇 カードQRを表示(ビンゴ申告)</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>⚙️ カード管理</h2>
+        <div class="btn-row">
+          <button class="btn-ghost" id="new-card-btn">🔄 カードを引き直す</button>
+          <button class="btn-ghost" id="leave-btn">🚪 別のゲームに参加</button>
+        </div>
+        <p class="hint">カードの引き直しはゲーム開始前に行ってください。マークもリセットされます。</p>
+      </section>
+    </div>
+  </main>
+
+  <dialog id="qr-dialog">
+    <h2 style="margin-top:0; text-align:center">ビンゴ申告用QR</h2>
+    <div class="qr-box" id="card-qr"></div>
+    <p class="card-id-label" id="dialog-card-id"></p>
+    <p class="hint" style="text-align:center">この画面をホストに見せて読み取ってもらってください</p>
+    <div class="btn-row" style="margin-top:10px">
+      <button class="btn-ghost" id="qr-close">閉じる</button>
+    </div>
+  </dialog>
+
+  <script src="lib/qrcode.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/player.js"></script>
+</body>
+</html>
