@@ -46,6 +46,22 @@ python3 -m http.server 8000
 
 リポジトリの Settings → Pages → Branch にこのブランチ(またはmain)のルートを指定するだけで公開できます。
 
+## 開発ロードマップ(v2: リアルタイム配信ビンゴ)
+
+TV・YouTube Live などの配信で使えるオンラインモード(カードのネットワーク配布・自動マーキング・球数基準ランキング・当選コード)を計画中です。仕様は Spec Kit 形式で管理しています。
+
+```
+.specify/memory/constitution.md        # プロジェクト憲章(公平性・PIIフリー等の原則)
+specs/001-realtime-bingo/
+  spec.md          # 機能仕様(ユーザーストーリー・FR/NFR・受け入れ基準)
+  research.md      # 設計判断の記録(同着ルール・配信遅延・当選コード・Firebase採用)
+  plan.md          # 実装計画(アーキテクチャ・フェーズ分割)
+  data-model.md    # Firestore データモデル
+  contracts/functions-api.md   # Cloud Functions API 契約
+  quickstart.md    # 開発環境セットアップ
+  tasks.md         # タスクリスト
+```
+
 ## クレジット
 
 - [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) © Kazuhiko Arase (MIT License)
