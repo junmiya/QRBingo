@@ -20,7 +20,7 @@
     <section class="panel" id="gamecode-panel" hidden>
       <h2>🎫 ゲームに参加</h2>
       <p class="hint">配信画面に表示されているゲームコードを入力してください。</p>
-      <div style="display:flex; gap:8px; margin-top:10px">
+      <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap">
         <input type="text" id="in-gamecode" placeholder="例: ABCD" maxlength="8" autocomplete="off">
         <button class="btn-primary" id="gamecode-btn" style="flex-shrink:0; width:auto">次へ</button>
       </div>
@@ -30,11 +30,11 @@
     <section class="panel" id="nickname-panel" hidden>
       <h2>👤 ニックネームを入力</h2>
       <p class="hint">ランキングに表示される名前です(1〜12文字)。</p>
-      <div style="display:flex; gap:8px; margin-top:10px">
+      <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap">
         <input type="text" id="in-nickname" placeholder="例: たろう" maxlength="12" autocomplete="off" style="text-transform:none">
         <button class="btn-primary" id="nickname-btn" style="flex-shrink:0; width:auto">参加する</button>
       </div>
-      <p class="hint" id="nickname-error" style="color:#ff8fa3"></p>
+      <p class="hint error-text" id="nickname-error"></p>
     </section>
 
     <!-- エラー表示 -->
@@ -51,7 +51,7 @@
       <div class="status-banner" id="status-banner">番号が呼ばれると自動でマークされます</div>
 
       <section class="panel">
-        <h2>🎟️ あなたのカード <span style="float:right; color:var(--muted); font-size:.8rem; font-weight:400">ゲーム: <span id="game-label"></span></span></h2>
+        <h2>🎟️ あなたのカード <span style="float:right; color:var(--muted); font-size:.85rem; font-weight:600">ゲーム: <span id="game-label"></span></span></h2>
         <div class="card-wrap">
           <table class="bingo readonly" id="card"></table>
         </div>

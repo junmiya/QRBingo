@@ -18,11 +18,11 @@
     <section class="panel" id="join-form" hidden>
       <h2>🎫 ゲームに参加</h2>
       <p class="hint">ホストの画面に表示されているゲームコード(4文字)を入力してください。</p>
-      <div style="display:flex; gap:8px; margin-top:10px">
+      <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap">
         <input type="text" id="game-input" placeholder="例: ABCD" maxlength="8" autocomplete="off">
         <button class="btn-primary" id="join-btn" style="flex-shrink:0; width:auto">参加</button>
       </div>
-      <p class="hint" id="join-error" style="color:#ff8fa3"></p>
+      <p class="hint error-text" id="join-error"></p>
     </section>
 
     <!-- ゲーム画面 -->
@@ -30,7 +30,7 @@
       <div class="status-banner" id="status-banner">番号が呼ばれたらタップしてマーク!</div>
 
       <section class="panel">
-        <h2>🎟️ あなたのカード <span style="float:right; color:var(--muted); font-size:.8rem; font-weight:400">ゲーム: <span id="game-label"></span></span></h2>
+        <h2>🎟️ あなたのカード <span style="float:right; color:var(--muted); font-size:.85rem; font-weight:600">ゲーム: <span id="game-label"></span></span></h2>
         <div class="card-wrap">
           <table class="bingo" id="card"></table>
         </div>

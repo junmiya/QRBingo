@@ -41,7 +41,7 @@
       <div class="btn-row" style="margin-top:16px">
         <button class="btn-primary" id="create-btn">ゲームを作成</button>
       </div>
-      <p class="hint" id="create-error" style="color:#ff8fa3"></p>
+      <p class="hint error-text" id="create-error"></p>
     </section>
 
     <!-- ロビー(参加受付中) -->
@@ -55,12 +55,12 @@
       <div class="btn-row" style="margin-top:10px">
         <button class="btn-primary" id="start-btn">ゲームを開始する</button>
       </div>
-      <p class="hint" id="lobby-error" style="color:#ff8fa3"></p>
+      <p class="hint error-text" id="lobby-error"></p>
     </section>
 
     <!-- 進行中 -->
     <section class="panel" id="playing-panel" hidden>
-      <h2>🎱 番号抽選 <span style="float:right; color:var(--muted); font-size:.8rem; font-weight:400">ゲーム: <span id="playing-game-code"></span> / 参加 <span id="playing-count">0</span>人</span></h2>
+      <h2>🎱 番号抽選 <span style="float:right; color:var(--muted); font-size:.85rem; font-weight:600">ゲーム: <span id="playing-game-code"></span> / 参加 <span id="playing-count">0</span>人</span></h2>
       <div class="ball-stage">
         <div class="ball empty" id="current-ball">
           <span class="ball-number">?</span>
@@ -69,7 +69,7 @@
       </div>
       <div class="history" id="history"></div>
       <p class="count-note" id="count-note"></p>
-      <p class="hint" id="draw-error" style="color:#ff8fa3"></p>
+      <p class="hint error-text" id="draw-error"></p>
     </section>
 
     <section class="panel">
