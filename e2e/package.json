@@ -1,0 +1,11 @@
+{
+  "name": "qrbingo-e2e",
+  "private": true,
+  "description": "オンラインモードの実ブラウザ E2E(Firebase Emulator + 静的サーバー使用、Phase 1 検証用)",
+  "scripts": {
+    "test": "node online-flow.test.js"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.61.1"
+  }
+}

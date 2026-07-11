@@ -8,29 +8,33 @@
 
 ### Setup
 
-- [ ] T001 Firebase プロジェクト初期化(firebase.json, .firebaserc, emulator 設定)
-- [ ] T002 `functions/` 雛形(Node 20, eslint, jest)と `firestore.rules` の骨格
-- [ ] T003 [P] Firebase JS SDK のベンダリングと `js/online/firebase-init.js`(Emulator 自動接続込み)
-- [ ] T004 [P] `js/common.js` のカード生成・ライン判定を `functions/src/lib/bingo.js` へ共有する仕組み(コピー同期スクリプト or 共通ファイル参照)
+- [x] T001 Firebase プロジェクト初期化(firebase.json, .firebaserc, emulator 設定)
+- [x] T002 `functions/` 雛形(Node 20, jest)と `firestore.rules` の骨格
+- [x] T003 [P] Firebase JS SDK のベンダリングと `js/online/firebase-init.js`(Emulator 自動接続込み)
+- [x] T004 [P] `js/common.js` の @shared ブロックを `functions/src/lib/bingo.js` へ同期するスクリプト(`functions/scripts/sync-lib.js`)
 
 ### Functions
 
-- [ ] T010 `createGame` 実装+unit test(設定バリデーション、FR-001)
-- [ ] T011 `startGame` 実装+unit test(設定ロック、FR-002)
-- [ ] T012 `joinGame` 実装+unit test(冪等・定員・NGワード・gridHash 重複排除トランザクション、FR-003/004/005)
-- [ ] T013 `drawNumber` 実装+unit test(直列化・revealAt 付与・75球上限、FR-006/007)
-- [ ] T014 `firestore.rules` 本実装+rules unit test(cards は本人のみ read 等)
+- [x] T010 `createGame` 実装+integration test(設定バリデーション、FR-001)
+- [x] T011 `startGame` 実装+integration test(設定ロック、FR-002)
+- [x] T012 `joinGame` 実装+integration test(冪等・定員・NGワード・gridHash 重複排除トランザクション・allowDuplicateCards、FR-003/004/005)
+- [x] T013 `drawNumber` 実装+integration test(直列化・revealAt 付与・75球上限、FR-006/007)
+- [x] T014 `firestore.rules` 本実装(cards/winners は本人+ホストのみ read 等)。rules 単体テストは Phase 2/3 の実データ(claims/winners)投入時に追加
 
 ### Frontend
 
-- [ ] T020 `index.html` にモード選択(オフライン/オンライン)を追加 ※v1 導線は温存(FR-015)
-- [ ] T021 `online/host.html` + `js/online/host.js` — ゲーム作成フォーム、参加QR表示、抽選ボタン、抽選履歴(v1 の UI 部品を流用)
-- [ ] T022 `online/player.html` + `js/online/player.js` — 参加フロー(ニックネーム)、カード表示、draws 購読と自動マーキング(revealAt+サーバー時刻オフセット)
-- [ ] T023 セッション復帰(匿名認証永続化+cards/{gameId}_{uid} 読み戻し、FR-013)
+- [x] T020 `index.html` にモード選択(オフライン/オンライン)を追加 ※v1 導線は温存(FR-015)
+- [x] T021 `online/host.html` + `js/online/host.js` — ゲーム作成フォーム、参加QR表示、抽選ボタン、抽選履歴(v1 の UI 部品を流用)
+- [x] T022 `online/player.html` + `js/online/player.js` — 参加フロー(ニックネーム)、カード表示、draws 購読と自動マーキング(revealAt はサーバー時刻基準で発行。クライアント比較はローカル Date.now() — サーバー時刻オフセット補正は T050 で revealDelaySec の UI が入る際に追加)
+- [x] T023 セッション復帰(匿名認証永続化+`joinGame` のニックネーム省略呼び出しによる冪等リジョインで実現、FR-013)。ホスト側はブラウザ localStorage の gameId ポインタ+hostUid のサーバー側検証(別デバイスへの引き継ぎは Out of Scope、同一ブラウザの再読み込みのみ対応)
 
 ### Verify (Phase 1 gate)
 
-- [ ] T030 Playwright E2E: 作成→参加→抽選→自動マーク→リロード復帰(Emulator 上、US-1/2/3 の受け入れシナリオ全件)
+- [x] T030 Playwright E2E(Firestore+Auth+Functions Emulator 上、実ブラウザ): ゲーム作成→ロビー参加→開始→ゲーム中参加→39/49球抽選→ビンゴ判定一致→両者リロードでのセッション復帰→定員境界での参加拒否、を確認。バックエンドは unit 19件+integration 32件(計51件)が別途green
+
+**Phase 1 completed 2026-07-11.** 既知のスコープ限定事項:
+- クライアント側の revealAt 判定はサーバー時刻オフセット補正なし(revealDelaySec=0 が既定の間は無影響。補正は T050 で対応)
+- ホストの「別デバイスでの復帰」はセッション機構としては未対応(hostUid によるサーバー側の権限チェックは常に有効)
 
 ## Phase 2: 判定・ランキング・当選コード (US-4, US-5)
 

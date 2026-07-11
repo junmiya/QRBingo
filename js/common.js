@@ -4,9 +4,16 @@
  * QRBingo 共通ロジック
  * カードはカードID文字列から決定論的に生成されるため、
  * サーバー無しでもホスト側で同じカードを再現して検証できる。
+ *
+ * 下記の @shared ブロックは functions/scripts/sync-lib.js が
+ * 抽出し、functions/src/lib/bingo.js として Cloud Functions 側にも
+ * 配布される「単一ソース」。ブラウザ専用 API
+ * (crypto.getRandomValues, localStorage 等) を持ち込まないこと。
+ * 変更したら functions 側で `npm run sync-lib` を実行して同期する。
  * ========================================================= */
 
-const QRB = (() => {
+/* @shared:start */
+const QRB_SHARED = (() => {
 
   // ---- 文字列 → シード (cyrb128) ----
   function cyrb128(str) {
@@ -38,16 +45,6 @@ const QRB = (() => {
   function rngFromString(str) {
     const s = cyrb128(str);
     return mulberry32(s[0] ^ s[1] ^ s[2]);
-  }
-
-  // ---- ID 生成(紛らわしい文字 0/O/1/I/L を除外)----
-  const ID_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-  function randomId(len) {
-    const buf = new Uint32Array(len);
-    crypto.getRandomValues(buf);
-    let out = '';
-    for (let i = 0; i < len; i++) out += ID_ALPHABET[buf[i] % ID_ALPHABET.length];
-    return out;
   }
 
   // ---- ビンゴカード ----
@@ -104,6 +101,44 @@ const QRB = (() => {
     return { bingoLines, reachCount };
   }
 
+  // ball index(何球目か)の配列から、winLines 本のラインが最初に揃う
+  // 時点の ball index を返す。揃わない場合は null。
+  // draws: 抽選順に並んだ番号の配列(draws[i] は i+1 球目)
+  function findAchievedBallIndex(grid, draws, winLines) {
+    const marked = new Set();
+    for (let i = 0; i < draws.length; i++) {
+      marked.add(draws[i]);
+      const { bingoLines } = evaluateCard(grid, marked);
+      if (bingoLines.length >= winLines) return i + 1;
+    }
+    return null;
+  }
+
+  return {
+    FREE, COLUMNS, LINES,
+    rngFromString, columnLetter,
+    generateCard, evaluateCard, findAchievedBallIndex,
+  };
+})();
+/* @shared:end */
+
+const QRB = (() => {
+  const {
+    FREE, COLUMNS, LINES,
+    rngFromString, columnLetter,
+    generateCard, evaluateCard, findAchievedBallIndex,
+  } = QRB_SHARED;
+
+  // ---- ID 生成(紛らわしい文字 0/O/1/I/L を除外)----
+  const ID_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  function randomId(len) {
+    const buf = new Uint32Array(len);
+    crypto.getRandomValues(buf);
+    let out = '';
+    for (let i = 0; i < len; i++) out += ID_ALPHABET[buf[i] % ID_ALPHABET.length];
+    return out;
+  }
+
   // ---- QR コード SVG 生成 ----
   function qrSvg(text, cellSize) {
     const qr = qrcode(0, 'M');
@@ -128,7 +163,7 @@ const QRB = (() => {
   return {
     FREE, COLUMNS, LINES,
     rngFromString, randomId, columnLetter,
-    generateCard, evaluateCard, qrSvg,
+    generateCard, evaluateCard, findAchievedBallIndex, qrSvg,
     loadJSON, saveJSON,
   };
 })();

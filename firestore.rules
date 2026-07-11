@@ -1,0 +1,59 @@
+rules_version = '2';
+
+// QRBingo v2 セキュリティルール
+//
+// 公平性・PIIフリーの原則(.specify/memory/constitution.md)により、
+// クライアントからの直接 write は一切許可しない。
+// ゲーム作成・参加・抽選・判定はすべて Cloud Functions (Admin SDK) 経由のみ。
+// ここでは「誰が何を read できるか」だけを定義する。
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isHost(gameId) {
+      return signedIn() &&
+        get(/databases/$(database)/documents/games/$(gameId)).data.hostUid == request.auth.uid;
+    }
+
+    // ゲーム本体: 状態・抽選履歴は参加者全員が購読する公開情報
+    match /games/{gameId} {
+      allow read: if signedIn();
+      allow write: if false;
+
+      // ランキング投影(伏字適用済み・当選コードは含まない)
+      match /public/{docId} {
+        allow read: if signedIn();
+        allow write: if false;
+      }
+
+      // 重複カード排除用のロック。クライアントに公開する情報を持たない
+      match /gridHashes/{hash} {
+        allow read: if false;
+        allow write: if false;
+      }
+    }
+
+    // カード: シードは所有者のみ読める(他人のカードを推測させない)
+    match /cards/{cardId} {
+      allow read: if signedIn() && resource.data.uid == request.auth.uid;
+      allow write: if false;
+    }
+
+    // ビンゴ申告: 結果は submitClaim の戻り値で本人に返すため、
+    // Firestore からの直接購読は許可しない(Functions 内部専用)
+    match /claims/{claimId} {
+      allow read: if false;
+      allow write: if false;
+    }
+
+    // 当選情報: 当選コードは本人とホストのみ(ランキング画面での照合に必要)
+    match /winners/{winnerId} {
+      allow read: if signedIn() &&
+        (resource.data.uid == request.auth.uid || isHost(resource.data.gameId));
+      allow write: if false;
+    }
+  }
+}

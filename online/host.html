@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ホスト(オンライン) - QRBingo</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎱</text></svg>">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <header class="app-header">
+    <h1 class="logo"><a href="../index.html"><span class="q">QR</span>Bingo</a></h1>
+    <p class="tagline">ホスト画面(オンラインモード)</p>
+  </header>
+
+  <main>
+    <p id="conn-status" class="hint" style="text-align:center">接続中…</p>
+
+    <!-- ゲーム作成フォーム -->
+    <section class="panel" id="create-panel" hidden>
+      <h2>🎪 オンラインゲームを作成</h2>
+      <p class="hint">TV・配信画面にQRコードを表示し、視聴者にネットワーク経由でカードを配布します。</p>
+
+      <div style="margin-top:14px">
+        <label class="hint" for="in-winlines">勝利条件(ライン数)</label>
+        <input type="text" id="in-winlines" value="1" inputmode="numeric" style="text-transform:none">
+      </div>
+      <div style="margin-top:10px">
+        <label class="hint" for="in-capacity">定員(空欄で無制限)</label>
+        <input type="text" id="in-capacity" placeholder="無制限" inputmode="numeric" style="text-transform:none">
+      </div>
+      <div style="margin-top:10px">
+        <label class="hint" for="in-prizes">景品数</label>
+        <input type="text" id="in-prizes" value="3" inputmode="numeric" style="text-transform:none">
+      </div>
+      <div style="margin-top:10px; display:flex; align-items:center; gap:8px">
+        <input type="checkbox" id="in-allowdup" style="width:auto">
+        <label class="hint" for="in-allowdup" style="margin:0">同一カードを許可する(重複チェックを省略)</label>
+      </div>
+
+      <div class="btn-row" style="margin-top:16px">
+        <button class="btn-primary" id="create-btn">ゲームを作成</button>
+      </div>
+      <p class="hint" id="create-error" style="color:#ff8fa3"></p>
+    </section>
+
+    <!-- ロビー(参加受付中) -->
+    <section class="panel" id="lobby-panel" hidden>
+      <h2>📱 参加用QRコード</h2>
+      <div class="game-code" id="game-code"></div>
+      <div class="qr-box" id="join-qr"></div>
+      <p class="join-url" id="join-url"></p>
+      <p class="hint" id="lobby-settings"></p>
+      <p class="hint">参加人数: <strong id="participant-count">0</strong> 人</p>
+      <div class="btn-row" style="margin-top:10px">
+        <button class="btn-primary" id="start-btn">ゲームを開始する</button>
+      </div>
+      <p class="hint" id="lobby-error" style="color:#ff8fa3"></p>
+    </section>
+
+    <!-- 進行中 -->
+    <section class="panel" id="playing-panel" hidden>
+      <h2>🎱 番号抽選 <span style="float:right; color:var(--muted); font-size:.8rem; font-weight:400">ゲーム: <span id="playing-game-code"></span> / 参加 <span id="playing-count">0</span>人</span></h2>
+      <div class="ball-stage">
+        <div class="ball empty" id="current-ball">
+          <span class="ball-number">?</span>
+        </div>
+        <button class="btn-primary" id="draw-btn">抽選する!</button>
+      </div>
+      <div class="history" id="history"></div>
+      <p class="count-note" id="count-note"></p>
+      <p class="hint" id="draw-error" style="color:#ff8fa3"></p>
+    </section>
+
+    <section class="panel">
+      <h2>⚙️ ゲーム管理</h2>
+      <div class="btn-row">
+        <button class="btn-ghost" id="reset-btn">🆕 新しいゲームを開始</button>
+      </div>
+      <p class="hint">この操作は表示をリセットするだけで、進行中のゲーム自体は継続されます(参加者は影響を受けません)。</p>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    QRBingo オンラインモード — Firebase によるリアルタイム配信ビンゴ
+  </footer>
+
+  <script src="../lib/qrcode.js"></script>
+  <script src="../js/common.js"></script>
+  <script type="module" src="../js/online/host.js"></script>
+</body>
+</html>

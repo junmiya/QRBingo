@@ -46,23 +46,64 @@ python3 -m http.server 8000
 
 リポジトリの Settings → Pages → Branch にこのブランチ(またはmain)のルートを指定するだけで公開できます。
 
-## 開発ロードマップ(v2: リアルタイム配信ビンゴ)
+## オンラインモード(v2: リアルタイム配信ビンゴ)
 
-TV・YouTube Live などの配信で使えるオンラインモード(カードのネットワーク配布・自動マーキング・球数基準ランキング・当選コード)を計画中です。仕様は Spec Kit 形式で管理しています。
+TV・YouTube Live などの配信でも使えるモード。カードはネットワーク経由で配布され、
+抽選結果は Firebase 経由でリアルタイムに全参加者へ配信・自動マーキングされます
+(手動タップは不要)。**Phase 1(基盤・リアルタイム抽選)は実装・検証済み**です。
+
+- `online/host.html` — ゲーム作成(勝利ライン数・定員・景品数・同一カード許可)、
+  参加用QR表示、抽選、抽選履歴のリアルタイム表示
+- `online/player.html` — QR/ゲームコードで参加、初回のみニックネーム入力、
+  カードは抽選結果に応じて自動でマークされる。リロードしても同じカードに復帰
+
+まだビンゴ判定・ランキング・当選コード(Phase 2)や公開ディレイ設定 UI・App Check
+(Phase 3)は未実装です。詳細は下記の Spec Kit ドキュメントと `tasks.md` の進捗を参照してください。
 
 ```
 .specify/memory/constitution.md        # プロジェクト憲章(公平性・PIIフリー等の原則)
 specs/001-realtime-bingo/
   spec.md          # 機能仕様(ユーザーストーリー・FR/NFR・受け入れ基準)
   research.md      # 設計判断の記録(同着ルール・配信遅延・当選コード・Firebase採用)
-  plan.md          # 実装計画(アーキテクチャ・フェーズ分割)
+  plan.md          # 実装計画(アーキテクチャ・フェーズ分割・進捗)
   data-model.md    # Firestore データモデル
   contracts/functions-api.md   # Cloud Functions API 契約
-  quickstart.md    # 開発環境セットアップ
-  tasks.md         # タスクリスト
+  quickstart.md    # 開発環境セットアップ(Firebase Emulator Suite)
+  tasks.md         # タスクリストと完了状況
 ```
+
+### オンラインモードのファイル構成
+
+```
+online/host.html          # ホスト画面(オンライン)
+online/player.html        # プレイヤー画面(オンライン)
+js/online/firebase-init.js   # SDK初期化・匿名認証・Emulator自動接続
+js/online/host.js            # ホスト画面ロジック
+js/online/player.js          # プレイヤー画面ロジック
+js/online/firebase-config.js # Firebase Web設定(要:本番プロジェクトの値に置き換え)
+lib/firebase/                # Firebase JS SDK (Apache-2.0、ベンダリング済み)
+firebase.json, .firebaserc, firestore.rules, firestore.indexes.json
+functions/                   # Cloud Functions (createGame/startGame/joinGame/drawNumber)
+  src/lib/bingo.js              # js/common.js の @shared ブロックから自動生成(要 npm run sync-lib)
+  test/unit/, test/integration/ # Jest: unit 19件 + Firestore Emulator 結合 32件
+e2e/online-flow.test.js      # Playwright によるオンラインモードの実ブラウザ E2E
+```
+
+### オンラインモードをローカルで試す
+
+```bash
+cd functions && npm install
+npm run test:unit          # ロジック単体テスト(Emulator不要)
+npm run test:integration   # Firestore Emulatorを自動起動して結合テスト
+```
+
+ブラウザで試す場合は `specs/001-realtime-bingo/quickstart.md` の手順で
+Auth/Firestore/Functions Emulator を起動し、リポジトリルートを別途 HTTP サーバーで
+配信して `online/host.html` を開いてください(本番デプロイには実際の Firebase
+プロジェクトの作成が必要です)。`e2e/online-flow.test.js` で一連の流れを自動検証できます。
 
 ## クレジット
 
 - [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) © Kazuhiko Arase (MIT License)
 - [jsQR](https://github.com/cozmo/jsQR) © Cosmo Wolfe (Apache License 2.0)
+- [Firebase JS SDK](https://github.com/firebase/firebase-js-sdk) © Google (Apache License 2.0) — `lib/firebase/` にベンダリング(CDN 非依存化のため gstatic.com への内部参照をローカルパスに書き換え済み)

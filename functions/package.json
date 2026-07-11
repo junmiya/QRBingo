@@ -1,0 +1,24 @@
+{
+  "name": "qrbingo-functions",
+  "private": true,
+  "description": "QRBingo v2 Cloud Functions — サーバー権威の抽選・カード発行・ビンゴ判定",
+  "engines": {
+    "node": "20"
+  },
+  "main": "src/index.js",
+  "scripts": {
+    "sync-lib": "node scripts/sync-lib.js",
+    "pretest": "npm run sync-lib",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "jest --runInBand --testPathPatterns=unit",
+    "test:integration": "firebase emulators:exec --only firestore --project demo-qrbingo \"jest --runInBand --testPathPatterns=integration\""
+  },
+  "dependencies": {
+    "firebase-admin": "^13.10.0",
+    "firebase-functions": "^7.2.5"
+  },
+  "devDependencies": {
+    "firebase-tools": "^15.23.0",
+    "jest": "^30.4.2"
+  }
+}

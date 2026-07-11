@@ -1,1 +1,11 @@
 node_modules/
+
+# Firebase emulator artifacts
+firestore-debug.log
+firebase-debug.log
+ui-debug.log
+*-debug.log
+.firebase/
+
+# 自動生成物(functions/scripts/sync-lib.js が js/common.js から生成)
+functions/src/lib/bingo.js
