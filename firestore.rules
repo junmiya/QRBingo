@@ -29,6 +29,12 @@ service cloud.firestore {
         allow write: if false;
       }
 
+      // 確定ランキング・当選コード(実ニックネーム含む)。ホストのみ読取可。
+      match /private/{docId} {
+        allow read: if isHost(gameId);
+        allow write: if false;
+      }
+
       // 重複カード排除用のロック。クライアントに公開する情報を持たない
       match /gridHashes/{hash} {
         allow read: if false;
@@ -49,10 +55,17 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // 当選情報: 当選コードは本人とホストのみ(ランキング画面での照合に必要)
+    // 当選情報: 当選コードは本人とホストのみ(ランキング画面での照合に必要)。
+    // resource == null(未作成)を許可することで、プレイヤーが finishGame より前に
+    // 自分の当選ドキュメントを購読開始できる(存在すれば本人/ホストのみ read)。
+    // 誰が当選したか自体は公開 leaderboard に出るため、この許可で漏れるのは
+    // 「未作成 = null」のみで、当選コードは作成後に本人/ホストへ限定される。
     match /winners/{winnerId} {
-      allow read: if signedIn() &&
-        (resource.data.uid == request.auth.uid || isHost(resource.data.gameId));
+      allow read: if signedIn() && (
+        resource == null ||
+        resource.data.uid == request.auth.uid ||
+        isHost(resource.data.gameId)
+      );
       allow write: if false;
     }
   }

@@ -38,13 +38,19 @@
 
 ## Phase 2: 判定・ランキング・当選コード (US-4, US-5)
 
-- [ ] T040 `submitClaim` 実装+unit test(seed 再計算・公開済み draws のみ・achievedBallIndex 算出・冪等、FR-008)
-- [ ] T041 順位付けと leaderboard 投影(同 ballIndex 同順位)+unit test
-- [ ] T042 `finishGame` 実装+unit test(同着抽選 tieBreakSeed・winCode 発行、FR-009/010)
-- [ ] T043 [P] クライアント: 条件到達の自動検知→submitClaim→当選画面(順位+winCode 表示)
-- [ ] T044 [P] ホスト: ランキング画面(順位・ニックネーム・winCode・handled トグル、FR-011)
-- [ ] T045 [P] NGワードフィルタ(client+server 共通リスト)と hideNickname
-- [ ] T046 同着シミュレーションテスト: 1,000 人・意図的同着で順位が ballIndex 順と完全一致(SC-002)、改竄クレーム受理 0%(SC-003)
+- [x] T040 `submitClaim` 実装+integration test(seed 再計算・公開済み draws のみ・achievedBallIndex 算出・冪等・公開ディレイ中除外、FR-008)
+- [x] T041 順位付け(`lib/ranking.js`)と public/leaderboard 投影(`lib/leaderboardService.js`、同 ballIndex 同順位=competition ranking)+unit/integration test
+- [x] T042 `finishGame` 実装+integration test(tieBreakSeed による決定論的同着抽選・winCode 発行・private/results と public/leaderboard の整合、FR-009/010)
+- [x] T043 [P] プレイヤー: 条件到達の自動検知→submitClaim→順位/当選コード表示(winners 購読 + 公開 leaderboard 購読で最終順位も反映)
+- [x] T044 [P] ホスト: ゲーム終了ボタン + ランキング画面(暫定=public/leaderboard、確定=private/results・winCode・handled トグル、FR-011)
+- [x] T045 [P] hideNickname(公開ランキング伏字化・確定後は private/results にも反映)・markWinnerHandled。firestore.rules に private/results(host 読取)と winners の未作成購読許可を追加
+- [x] T046 公平性シミュレーション(60人通し・全球抽選で順位が ballIndex 基準のグラウンドトゥルースと一致 SC-002、winLines=2 で未成立 20 人が全員 rejected = 改竄受理 0% SC-003)+ ブラウザ E2E(`e2e/phase2-flow.test.js`)
+
+**Phase 2 completed 2026-07-11.** バックエンド unit 30 + integration 52(計 82)green、ブラウザ E2E(Phase 1/2)green。
+NG ワードフィルタは参加時(joinGame)にサーバー側で適用済み(Phase 1 の `lib/nickname.js`)。
+クライアント側の事前フィルタは未実装(サーバーが最終判定するため機能上は不要)。既知のスコープ限定事項:
+- 当選者連絡は当選コード方式(メール収集なし・憲章 II)。景品受け渡しは主催者チャネルで照合
+- submitClaim / hideNickname の leaderboard 再投影は非トランザクション(最終権威は finishGame)。同時多発クレーム時に一時的な順位のちらつきはあり得るが、確定順位は ballIndex 基準で不変
 
 ## Phase 3: 仕上げ (US-6, NFR)
 

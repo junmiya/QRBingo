@@ -50,6 +50,17 @@
     <div id="game-area" hidden>
       <div class="status-banner" id="status-banner">番号が呼ばれると自動でマークされます</div>
 
+      <!-- 当選/順位パネル(ビンゴ成立後に表示) -->
+      <section class="panel" id="rank-panel" hidden>
+        <h2>🏆 あなたの順位</h2>
+        <p class="rank-big"><span id="rank-value">-</span> 位</p>
+        <div class="win-code-box" id="win-code-box" hidden>
+          <p class="hint" style="margin:0 0 6px">🎁 当選しました!この当選コードを主催者に伝えてください。</p>
+          <p class="win-code" id="win-code"></p>
+        </div>
+        <p class="hint" id="rank-note"></p>
+      </section>
+
       <section class="panel">
         <h2>🎟️ あなたのカード <span style="float:right; color:var(--muted); font-size:.85rem; font-weight:600">ゲーム: <span id="game-label"></span></span></h2>
         <div class="card-wrap">

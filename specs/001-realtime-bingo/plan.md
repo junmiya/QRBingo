@@ -103,5 +103,5 @@ submitClaim / finishGame、ball index 順位、同着抽選、当選コード、
 ## Progress Tracking
 
 - [x] Phase 1 complete (2026-07-11) — 詳細は tasks.md
-- [ ] Phase 2 complete
+- [x] Phase 2 complete (2026-07-11) — submitClaim/finishGame/hideNickname/markWinnerHandled、順位・当選コード、詳細は tasks.md
 - [ ] Phase 3 complete

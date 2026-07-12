@@ -73,4 +73,12 @@ function watchGame(gameId, onChange) {
   });
 }
 
-export { app, auth, db, functions, ensureSignedIn, callable, watchGame };
+// 任意のドキュメントパスを購読する汎用ヘルパー。
+// segments 例: ['games', gameId, 'public', 'leaderboard'] / ['winners', winnerId]
+function watchDocPath(segments, onChange) {
+  return onSnapshot(doc(db, ...segments), (snap) => {
+    onChange(snap.exists() ? snap.data() : null);
+  });
+}
+
+export { app, auth, db, functions, ensureSignedIn, callable, watchGame, watchDocPath };

@@ -50,15 +50,24 @@ python3 -m http.server 8000
 
 TV・YouTube Live などの配信でも使えるモード。カードはネットワーク経由で配布され、
 抽選結果は Firebase 経由でリアルタイムに全参加者へ配信・自動マーキングされます
-(手動タップは不要)。**Phase 1(基盤・リアルタイム抽選)は実装・検証済み**です。
+(手動タップは不要)。**Phase 1(基盤・リアルタイム抽選)と Phase 2(ビンゴ判定・
+ランキング・当選コード)を実装・検証済み**です。
 
 - `online/host.html` — ゲーム作成(勝利ライン数・定員・景品数・同一カード許可)、
-  参加用QR表示、抽選、抽選履歴のリアルタイム表示
+  参加用QR表示、抽選、抽選履歴のリアルタイム表示、暫定/確定ランキング、
+  ゲーム終了による順位確定、当選コードの照合(対応済みトグル)、ニックネーム伏字化
 - `online/player.html` — QR/ゲームコードで参加、初回のみニックネーム入力、
-  カードは抽選結果に応じて自動でマークされる。リロードしても同じカードに復帰
+  カードは抽選結果に応じて自動でマークされる。勝利条件に達すると自動でビンゴ申告し、
+  順位を表示。当選者には当選コードを表示。リロードしても同じカード・順位に復帰
 
-まだビンゴ判定・ランキング・当選コード(Phase 2)や公開ディレイ設定 UI・App Check
-(Phase 3)は未実装です。詳細は下記の Spec Kit ドキュメントと `tasks.md` の進捗を参照してください。
+**順位の公平性**: 順位は「何球目でビンゴが成立したか(ball index)」だけで決まり、
+申告時刻や通信速度は一切影響しません。ビンゴ判定はサーバーがカードのシードから
+再計算するため、クライアント側の改竄は受理されません。景品数を超える同着は、
+記録される乱数シード(tieBreakSeed)による決定論的抽選で確定します(後から検証可能)。
+当選者への連絡はメールを収集せず、当選コードを主催者チャネルで照合する方式です。
+
+まだ公開ディレイ設定 UI・リーチ人数表示・App Check・負荷試験(Phase 3)は未実装です。
+詳細は下記の Spec Kit ドキュメントと `tasks.md` の進捗を参照してください。
 
 ```
 .specify/memory/constitution.md        # プロジェクト憲章(公平性・PIIフリー等の原則)
@@ -83,10 +92,15 @@ js/online/player.js          # プレイヤー画面ロジック
 js/online/firebase-config.js # Firebase Web設定(要:本番プロジェクトの値に置き換え)
 lib/firebase/                # Firebase JS SDK (Apache-2.0、ベンダリング済み)
 firebase.json, .firebaserc, firestore.rules, firestore.indexes.json
-functions/                   # Cloud Functions (createGame/startGame/joinGame/drawNumber)
+functions/                   # Cloud Functions
+  src/createGame|startGame|joinGame|drawNumber.js   # Phase 1
+  src/submitClaim|finishGame|hideNickname|markWinnerHandled.js  # Phase 2
+  src/lib/ranking.js            # 順位付け・同着抽選(純粋ロジック)
+  src/lib/leaderboardService.js # 公開ランキング投影(DB読取)
   src/lib/bingo.js              # js/common.js の @shared ブロックから自動生成(要 npm run sync-lib)
-  test/unit/, test/integration/ # Jest: unit 19件 + Firestore Emulator 結合 32件
-e2e/online-flow.test.js      # Playwright によるオンラインモードの実ブラウザ E2E
+  test/unit/, test/integration/ # Jest: unit 30件 + Firestore Emulator 結合 52件
+e2e/online-flow.test.js      # Phase 1 の実ブラウザ E2E
+e2e/phase2-flow.test.js      # Phase 2(判定・順位・当選コード)の実ブラウザ E2E
 ```
 
 ### オンラインモードをローカルで試す

@@ -1,18 +1,28 @@
 // QRBingo v2 (オンラインモード) — プレイヤー画面ロジック
 // 手動タップは廃止し、サーバーの抽選結果(draws)から自動でマークする。
-import { ensureSignedIn, callable, watchGame } from './firebase-init.js';
+// 勝利条件に達したら自動で submitClaim を送り、順位・当選コードを表示する。
+import { ensureSignedIn, callable, watchGame, watchDocPath } from './firebase-init.js';
 
 const $ = (id) => document.getElementById(id);
 const LAST_GAME_KEY = 'qrbingo:online:player:last';
 const SECTIONS = ['gamecode-panel', 'nickname-panel', 'error-panel', 'game-area'];
 
 const joinGameFn = callable('joinGame');
+const submitClaimFn = callable('submitClaim');
 
 let currentGameId = null;
+let myUid = null;
 let grid = null;
+let winLines = 1;
+let gameStatus = null;
 let latestDraws = [];
 let pendingTimers = [];
 let unwatch = null;
+let unwatchWinner = null;
+let unwatchLeaderboard = null;
+let claiming = false;
+let claimed = false; // verified 済み(重複送信防止)
+let isWinnerFinal = false; // 当選ドキュメント受信済み(順位表示の上書き防止)
 
 function showOnly(id) {
   for (const s of SECTIONS) $(s).hidden = s !== id;
@@ -81,6 +91,23 @@ function onJoined(res) {
 
   if (unwatch) unwatch();
   unwatch = watchGame(currentGameId, onGameSnapshot);
+
+  // 当選ドキュメント(自分宛)を購読 → finishGame 後に当選コードを表示
+  if (unwatchWinner) unwatchWinner();
+  unwatchWinner = watchDocPath(['winners', `${currentGameId}_${myUid}`], onWinnerSnapshot);
+
+  // 公開ランキングを購読 → 自分の順位(暫定/確定)を反映(非当選でも最終順位が出る)
+  if (unwatchLeaderboard) unwatchLeaderboard();
+  unwatchLeaderboard = watchDocPath(
+    ['games', currentGameId, 'public', 'leaderboard'],
+    onLeaderboardSnapshot
+  );
+}
+
+function onLeaderboardSnapshot(lb) {
+  if (isWinnerFinal || !lb || !lb.entries) return;
+  const mine = lb.entries.find((e) => e.uid === myUid);
+  if (mine) showRank(mine.rank, gameStatus === 'finished');
 }
 
 // ---------- 抽選の反映(自動マーキング) ----------
@@ -109,9 +136,47 @@ function scheduleRevealTimers(draws) {
 
 function onGameSnapshot(game) {
   if (!game) return;
+  gameStatus = game.status;
+  winLines = (game.settings && game.settings.winLines) || 1;
   latestDraws = game.draws || [];
   scheduleRevealTimers(latestDraws);
   renderCard();
+}
+
+// ---------- 当選条件の自動検知とクレーム送信 ----------
+async function maybeClaim(bingoLineCount) {
+  if (claimed || claiming) return;
+  if (bingoLineCount < winLines) return;
+  claiming = true;
+  try {
+    const res = await submitClaimFn({ gameId: currentGameId });
+    if (res.status === 'verified') {
+      claimed = true;
+      showRank(res.provisionalRank, false);
+    }
+  } catch (e) {
+    // 一時的な失敗(通信断など)は次回のスナップショットで再試行される
+  } finally {
+    claiming = false;
+  }
+}
+
+function showRank(rank, isFinal) {
+  $('rank-panel').hidden = false;
+  $('rank-value').textContent = rank;
+  $('rank-note').textContent = isFinal
+    ? '最終順位です'
+    : '暫定順位です(ゲーム終了時に確定します)';
+}
+
+function onWinnerSnapshot(winner) {
+  if (!winner) return;
+  isWinnerFinal = true;
+  $('rank-panel').hidden = false;
+  $('rank-value').textContent = winner.rank;
+  $('rank-note').textContent = '🎉 おめでとうございます!確定順位です';
+  $('win-code-box').hidden = false;
+  $('win-code').textContent = winner.winCode;
 }
 
 // ---------- 描画 ----------
@@ -156,10 +221,14 @@ function renderCard() {
 }
 
 function renderStatus(evalResult) {
+  const lines = evalResult.bingoLines.length;
   const banner = $('status-banner');
-  if (evalResult.bingoLines.length > 0) {
+  if (lines >= winLines) {
     banner.className = 'status-banner bingo';
-    banner.textContent = '🎉 ビンゴ!';
+    banner.textContent = winLines > 1 ? `🎉 ${winLines}ライン達成!` : '🎉 ビンゴ!';
+  } else if (lines > 0) {
+    banner.className = 'status-banner reach';
+    banner.textContent = `あと ${winLines - lines} ライン(${lines}/${winLines})`;
   } else if (evalResult.reachCount > 0) {
     banner.className = 'status-banner reach';
     banner.textContent = `🔥 リーチ!(${evalResult.reachCount}本)`;
@@ -167,6 +236,9 @@ function renderStatus(evalResult) {
     banner.className = 'status-banner';
     banner.textContent = '番号が呼ばれると自動でマークされます';
   }
+
+  // 勝利条件に達していれば自動でクレーム送信(サーバーが最終判定)
+  maybeClaim(lines);
 }
 
 // ---------- イベント登録 ----------
@@ -194,7 +266,8 @@ $('error-retry-btn').addEventListener('click', () => {
 
 // ---------- 初期化 ----------
 (async () => {
-  await ensureSignedIn();
+  const user = await ensureSignedIn();
+  myUid = user.uid;
   $('conn-status').hidden = true;
 
   const params = new URLSearchParams(location.search);

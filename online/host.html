@@ -70,6 +70,16 @@
       <div class="history" id="history"></div>
       <p class="count-note" id="count-note"></p>
       <p class="hint error-text" id="draw-error"></p>
+      <div class="btn-row" style="margin-top:14px">
+        <button class="btn-ghost" id="finish-btn">🏁 ゲームを終了して順位を確定</button>
+      </div>
+    </section>
+
+    <!-- ランキング(進行中は暫定、終了後は確定+当選コード) -->
+    <section class="panel" id="ranking-panel" hidden>
+      <h2 id="ranking-title">📊 暫定ランキング</h2>
+      <p class="hint" id="ranking-note"></p>
+      <div id="ranking-body"></div>
     </section>
 
     <section class="panel">
