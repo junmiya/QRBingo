@@ -84,6 +84,9 @@ exports.submitClaim = onCall(async (request) => {
     verifiedAt: FieldValue.serverTimestamp(),
   });
 
+  // ビンゴ成立者はホストのリーチリストから外す(存在しなくても no-op)
+  await db.doc(`games/${gameId}/reaches/${uid}`).delete();
+
   await rebuildPublicLeaderboard(gameId);
   const provisionalRank = await provisionalRankOf(gameId, achievedBallIndex);
 

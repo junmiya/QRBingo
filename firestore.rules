@@ -35,6 +35,13 @@ service cloud.firestore {
         allow write: if false;
       }
 
+      // リーチ状況(演出用)。ホストのみ一覧を購読できる。
+      // 書き込みは reportReach Function がサーバー検証の上で行う
+      match /reaches/{uid} {
+        allow read: if isHost(gameId);
+        allow write: if false;
+      }
+
       // 重複カード排除用のロック。クライアントに公開する情報を持たない
       match /gridHashes/{hash} {
         allow read: if false;

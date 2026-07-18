@@ -40,6 +40,20 @@ Firestore コレクション設計。**すべての write は Cloud Functions �
 | nicknameHidden | boolean | ホストによる非表示フラグ |
 | createdAt | Timestamp | |
 
+## games/{gameId}/reaches/{uid}
+
+リーチ状況(演出用・US-6)。read はホストのみ。write は reportReach Function が
+サーバー検証の上で行う(虚偽報告は登録されない)。順位・当選には無関係。
+ビンゴ成立(submitClaim verified)時に自動削除される。
+
+| フィールド | 型 | 説明 |
+|---|---|---|
+| uid / nickname | string | 対象プレイヤー |
+| reachLines | number | あと1マスのライン本数 |
+| lines | number | 既に成立済みのライン本数(winLines>1 用) |
+| ballIndex | number | 報告時点の公開済み最終球 |
+| updatedAt | Timestamp | |
+
 ## games/{gameId}/gridHashes/{gridHash}
 
 一意性保証用のロックドキュメント(allowDuplicateCards=false のときのみ)。

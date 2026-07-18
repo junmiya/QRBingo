@@ -307,6 +307,28 @@ table.bingo td.bingo-cell {
   to { box-shadow: 0 0 12px rgba(22, 163, 74, .9); }
 }
 
+/* リーチマス: この番号が出れば1ライン揃うマスを点滅表示 */
+table.bingo td.reach-cell {
+  outline: 2px dashed #f59e0b;
+  animation: reach-cell-blink 1s ease-in-out infinite;
+}
+@keyframes reach-cell-blink {
+  0%, 100% { background: var(--panel-2); }
+  50% { background: #fef3c7; }
+}
+
+/* ビンゴ演出: 絵文字の紙吹雪 */
+.confetti { pointer-events: none; }
+.confetti span {
+  position: fixed;
+  top: -48px;
+  z-index: 999;
+  animation: confetti-fall 3s linear forwards;
+}
+@keyframes confetti-fall {
+  to { transform: translateY(115vh) rotate(720deg); opacity: .85; }
+}
+
 table.bingo.readonly td { cursor: default; }
 
 /* ---------- ステータスバナー ---------- */
@@ -325,6 +347,11 @@ table.bingo.readonly td { cursor: default; }
   background: #fffbeb;
   border-color: #f5c451;
   color: #a16207;
+  animation: reach-pulse 1.2s ease-in-out infinite;
+}
+@keyframes reach-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 196, 81, 0); }
+  50% { box-shadow: 0 0 0 6px rgba(245, 196, 81, .35); }
 }
 .status-banner.bingo {
   background: var(--accent);

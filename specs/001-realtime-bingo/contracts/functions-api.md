@@ -115,6 +115,23 @@ leaderboard 再投影。**リクエスト中のグリッドや時刻は受け取
 prizeCount 境界に同着がいる場合は `tieBreakSeed` による決定論的シャッフルで当選者を選出 →
 winners 作成(winCode 発行)→ status=finished。
 
+## reportReach
+
+リーチ状態の報告(演出用・US-6)。順位・当選には一切影響しない。
+クライアントはリーチ状態が変化した時のみ呼ぶ(同一状態の再送はしない)。
+
+```jsonc
+// request
+{ "gameId": "W2Y6" }
+// response
+{ "status": "reach", "reachLines": 2 }   // ほか "none" | "bingo"
+```
+
+処理: submitClaim と同様に seed からグリッド再計算し、公開済み draws で
+リーチ本数を検証(虚偽報告は登録されない)。リーチ中なら
+`games/{gameId}/reaches/{uid}` を upsert、リーチ無し/勝利条件到達済みなら削除。
+submitClaim が verified になった時も自動削除される。
+
 ## その他(Phase 2-3)
 
 - **hideNickname** `{ gameId, cardId, hidden }` — host のみ。leaderboard 再投影

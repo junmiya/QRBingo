@@ -14,6 +14,7 @@ import {
   getFirestore,
   connectFirestoreEmulator,
   doc,
+  collection,
   onSnapshot,
 } from '../../lib/firebase/firebase-firestore.js';
 import {
@@ -33,7 +34,17 @@ const IS_CONFIGURED =
   !!firebaseConfig.projectId && !String(firebaseConfig.projectId).startsWith('demo-');
 const ONLINE_AVAILABLE = IS_LOCAL || IS_CONFIGURED;
 
-const app = initializeApp(firebaseConfig);
+// localhost では常に Emulator 用の demo プロジェクト設定で初期化する。
+// firebase-config.js が本番値でも、Emulator は demo-qrbingo で起動しているため
+// projectId を合わせないと Functions の呼び出し先 URL が一致しない。
+const DEMO_CONFIG = {
+  apiKey: 'demo-emulator-key',
+  authDomain: 'demo-qrbingo.firebaseapp.com',
+  projectId: 'demo-qrbingo',
+  appId: '1:0:web:demo',
+};
+
+const app = initializeApp(IS_LOCAL ? DEMO_CONFIG : firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const functions = getFunctions(app);
@@ -89,6 +100,18 @@ function watchDocPath(segments, onChange) {
   });
 }
 
+// コレクション全体を購読する汎用ヘルパー(並び替えは呼び出し側で行う)。
+// segments 例: ['games', gameId, 'reaches']
+function watchCollectionPath(segments, onChange, onError) {
+  return onSnapshot(
+    collection(db, ...segments),
+    (snap) => {
+      onChange(snap.docs.map((d) => d.data()));
+    },
+    onError || (() => {})
+  );
+}
+
 export {
   app,
   auth,
@@ -99,4 +122,5 @@ export {
   callable,
   watchGame,
   watchDocPath,
+  watchCollectionPath,
 };

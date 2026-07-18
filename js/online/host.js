@@ -5,6 +5,7 @@ import {
   callable,
   watchGame,
   watchDocPath,
+  watchCollectionPath,
 } from './firebase-init.js';
 
 const $ = (id) => document.getElementById(id);
@@ -24,11 +25,13 @@ let gameId = null;
 let unwatch = null;
 let unwatchLeaderboard = null;
 let unwatchResults = null;
+let unwatchReaches = null;
 let drawing = false;
 let finishing = false;
 let gameStatus = null;
 let lastRenderedBallIndex = 0;
 let latestDrawsCount = 0;
+let latestReaches = [];
 
 function esc(s) {
   return String(s).replace(/[&<>"']/g, (c) =>
@@ -140,6 +143,7 @@ function renderGame(game) {
   showPanel('playing-panel');
   $('finish-btn').hidden = true;
   renderHistory(game.draws || []);
+  renderReaches(); // 終了後はリーチ表示を畳む
   $('draw-btn').disabled = true;
   $('draw-btn').textContent = game.status === 'finished' ? 'ゲーム終了(順位確定済み)' : 'ゲーム終了';
 }
@@ -153,6 +157,42 @@ function attachWatcher() {
   // 終了後は確定結果(private/results・当選コード込み)を購読
   if (unwatchResults) unwatchResults();
   unwatchResults = watchDocPath(['games', gameId, 'private', 'results'], onResults);
+  // リーチ状況(演出用・進行中のみ表示)を購読
+  if (unwatchReaches) unwatchReaches();
+  unwatchReaches = watchCollectionPath(['games', gameId, 'reaches'], onReaches);
+}
+
+// ---------- リーチ状況 ----------
+function onReaches(entries) {
+  latestReaches = entries || [];
+  renderReaches();
+}
+
+function renderReaches() {
+  const panel = $('reach-panel');
+  if (gameStatus !== 'playing' || latestReaches.length === 0) {
+    panel.hidden = true;
+    return;
+  }
+  // リーチ本数の多い順 → 早くリーチした順
+  const sorted = [...latestReaches].sort(
+    (a, b) => b.reachLines - a.reachLines || a.ballIndex - b.ballIndex
+  );
+  panel.hidden = false;
+  $('reach-count').textContent = `${sorted.length}人`;
+  const rows = sorted
+    .map(
+      (r) => `<tr>
+        <td>${esc(r.nickname || '(不明)')}</td>
+        <td>${r.reachLines}本</td>
+        <td class="hint">${r.ballIndex}球目〜</td>
+      </tr>`
+    )
+    .join('');
+  $('reach-body').innerHTML =
+    `<table class="leaderboard"><thead><tr>
+       <th>ニックネーム</th><th>リーチ</th><th>時点</th>
+     </tr></thead><tbody>${rows}</tbody></table>`;
 }
 
 // ---------- ランキング描画 ----------
@@ -239,7 +279,15 @@ async function handleDraw() {
   $('draw-btn').disabled = true;
   $('draw-error').textContent = '';
   try {
-    await drawNumberFn({ gameId });
+    const res = await drawNumberFn({ gameId });
+    // 抽選結果はレスポンスに含まれるので、スナップショット到着を待たずに
+    // その場でボールを描画する(ホストの体感遅延をなくす)。
+    // lastRenderedBallIndex を先に進めておくことで、直後のスナップショットで
+    // 同じ球が二重にポップ演出されるのを防ぐ。
+    if (res && typeof res.n === 'number' && res.ballIndex > lastRenderedBallIndex) {
+      lastRenderedBallIndex = res.ballIndex;
+      renderBall(res.n);
+    }
   } catch (err) {
     $('draw-error').textContent = err.message || String(err);
   } finally {
@@ -298,12 +346,15 @@ function handleReset() {
   if (unwatch) unwatch();
   if (unwatchLeaderboard) unwatchLeaderboard();
   if (unwatchResults) unwatchResults();
+  if (unwatchReaches) unwatchReaches();
   gameId = null;
   gameStatus = null;
   lastRenderedBallIndex = 0;
+  latestReaches = [];
   localStorage.removeItem(CURRENT_KEY);
   $('create-error').textContent = '';
   $('ranking-panel').hidden = true;
+  $('reach-panel').hidden = true;
   showPanel('create-panel');
 }
 

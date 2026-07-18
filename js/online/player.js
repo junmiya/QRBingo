@@ -15,6 +15,7 @@ const SECTIONS = ['gamecode-panel', 'nickname-panel', 'error-panel', 'game-area'
 
 const joinGameFn = callable('joinGame');
 const submitClaimFn = callable('submitClaim');
+const reportReachFn = callable('reportReach');
 
 let currentGameId = null;
 let myUid = null;
@@ -29,6 +30,9 @@ let unwatchLeaderboard = null;
 let claiming = false;
 let claimed = false; // verified 済み(重複送信防止)
 let isWinnerFinal = false; // 当選ドキュメント受信済み(順位表示の上書き防止)
+let lastReachKey = null; // リーチ報告の重複送信防止(状態が変わった時だけ送る)
+let reportingReach = false;
+let celebrated = false; // ビンゴ演出は初回のみ
 
 function showOnly(id) {
   for (const s of SECTIONS) $(s).hidden = s !== id;
@@ -172,7 +176,8 @@ function showRank(rank, isFinal) {
   $('rank-value').textContent = rank;
   $('rank-note').textContent = isFinal
     ? '最終順位です'
-    : '暫定順位です(ゲーム終了時に確定します)';
+    : '暫定順位です。順位は「何球目でビンゴしたか」で決まるため、' +
+      '通信の遅れで申告があとから届いた人が上に入ると変わることがあります(ゲーム終了時に確定)';
 }
 
 function onWinnerSnapshot(winner) {
@@ -186,11 +191,27 @@ function onWinnerSnapshot(winner) {
 }
 
 // ---------- 描画 ----------
+// リーチマス(そこが出れば1ライン揃うマス)の座標集合を返す
+function computeReachCells(marked, evalResult) {
+  const reachCells = new Set();
+  if (evalResult.bingoLines.length >= winLines) return reachCells; // 既に達成
+  for (const line of QRB.LINES) {
+    const unmarked = line.filter(
+      (c) => !(grid[c.col][c.row] === QRB.FREE || marked.has(grid[c.col][c.row]))
+    );
+    if (unmarked.length === 1) {
+      reachCells.add(unmarked[0].col + ':' + unmarked[0].row);
+    }
+  }
+  return reachCells;
+}
+
 function renderCard() {
   const marked = computeRevealedSet(latestDraws);
   const evalResult = QRB.evaluateCard(grid, marked);
   const bingoCells = new Set();
   evalResult.bingoLines.forEach((line) => line.forEach((c) => bingoCells.add(c.col + ':' + c.row)));
+  const reachCells = computeReachCells(marked, evalResult);
 
   const table = $('card');
   table.innerHTML = '';
@@ -214,9 +235,11 @@ function renderCard() {
       const free = n === QRB.FREE;
       const td = document.createElement('td');
       td.textContent = free ? 'FREE' : n;
+      const key = col + ':' + row;
       if (free || marked.has(n)) td.classList.add('marked');
       if (free) td.classList.add('free');
-      if (bingoCells.has(col + ':' + row)) td.classList.add('bingo-cell');
+      if (bingoCells.has(key)) td.classList.add('bingo-cell');
+      if (reachCells.has(key)) td.classList.add('reach-cell');
       tr.appendChild(td);
     }
     tbody.appendChild(tr);
@@ -226,12 +249,32 @@ function renderCard() {
   renderStatus(evalResult);
 }
 
+// ---------- ビンゴ演出(紙吹雪) ----------
+function celebrate() {
+  if (celebrated) return;
+  celebrated = true;
+  const box = document.createElement('div');
+  box.className = 'confetti';
+  const EMOJI = ['🎉', '🎊', '⭐', '🎈', '✨'];
+  for (let i = 0; i < 28; i++) {
+    const s = document.createElement('span');
+    s.textContent = EMOJI[i % EMOJI.length];
+    s.style.left = Math.random() * 100 + 'vw';
+    s.style.animationDelay = (Math.random() * 0.7).toFixed(2) + 's';
+    s.style.fontSize = Math.round(16 + Math.random() * 22) + 'px';
+    box.appendChild(s);
+  }
+  document.body.appendChild(box);
+  setTimeout(() => box.remove(), 4000);
+}
+
 function renderStatus(evalResult) {
   const lines = evalResult.bingoLines.length;
   const banner = $('status-banner');
   if (lines >= winLines) {
     banner.className = 'status-banner bingo';
     banner.textContent = winLines > 1 ? `🎉 ${winLines}ライン達成!` : '🎉 ビンゴ!';
+    celebrate();
   } else if (lines > 0) {
     banner.className = 'status-banner reach';
     banner.textContent = `あと ${winLines - lines} ライン(${lines}/${winLines})`;
@@ -245,6 +288,31 @@ function renderStatus(evalResult) {
 
   // 勝利条件に達していれば自動でクレーム送信(サーバーが最終判定)
   maybeClaim(lines);
+  // リーチ状態が変わったらホストのリーチリストへ報告(演出用・順位に無関係)
+  maybeReportReach(evalResult);
+}
+
+// リーチ状態の変化をサーバーへ報告する。同じ状態の再送はしない。
+// 失敗しても次のスナップショット(状態変化)で再試行される軽量処理。
+async function maybeReportReach(evalResult) {
+  if (claimed || gameStatus !== 'playing') return;
+  const lines = evalResult.bingoLines.length;
+  if (lines >= winLines) return; // ビンゴ側の処理(maybeClaim)に任せる
+  const key = lines + ':' + evalResult.reachCount;
+  if (key === lastReachKey || reportingReach) return;
+  if (evalResult.reachCount === 0 && lines === 0) {
+    lastReachKey = key; // リーチ無し状態も記録だけして送信しない
+    return;
+  }
+  reportingReach = true;
+  try {
+    await reportReachFn({ gameId: currentGameId });
+    lastReachKey = key;
+  } catch (e) {
+    // 一時的失敗は無視(次の状態変化で再送)
+  } finally {
+    reportingReach = false;
+  }
 }
 
 // ---------- イベント登録 ----------
