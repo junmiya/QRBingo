@@ -12,6 +12,7 @@
     }
   ],
   "hosting": {
+    "site": "qrbingo",
     "public": ".",
     "ignore": [
       "firebase.json",
