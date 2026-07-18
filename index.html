@@ -10,51 +10,59 @@
 <body>
   <header class="app-header">
     <h1 class="logo"><span class="q">QR</span>Bingo</h1>
-    <p class="tagline">QRコードで参加できる、サーバー不要のビンゴゲーム</p>
+    <p class="tagline">QRコードで参加、番号は自動マーク。TV・配信でも遊べるビンゴ</p>
   </header>
 
   <main>
     <section class="panel">
-      <h2>🏠 オフラインモード</h2>
-      <p class="hint">サーバー不要。会場での読み上げ+手動マーク向け。</p>
-      <a class="big-choice" href="host.html">
-        🎪 ゲームを主催する(ホスト)
-        <small>ゲームを作成して参加用QRコードを表示し、番号を抽選します</small>
-      </a>
-
-      <a class="big-choice" href="player.html">
-        🎫 ゲームに参加する(プレイヤー)
-        <small>ホストのQRコードを読み取るか、ゲームコードを入力してカードを受け取ります</small>
-      </a>
-    </section>
-
-    <section class="panel">
-      <h2>📡 オンラインモード</h2>
-      <p class="hint">TV・YouTube Live などの配信向け。カードはネットワーク配布、番号は自動でマークされます。</p>
+      <h2>📡 オンラインで遊ぶ</h2>
+      <p class="hint">TV・YouTube Live などの配信や、離れた場所からの参加向け。カードはネットワークで配られ、抽選番号は全員の画面に自動でマークされます。</p>
       <a class="big-choice" href="online/host.html">
-        🎪 オンラインゲームを主催する(ホスト)
-        <small>Firebase 経由でリアルタイムに抽選・自動マーキングを配信します</small>
+        🎪 ゲームを主催する(ホスト)
+        <small>ゲームを作成して参加用QRを表示、抽選ボタンを押すだけ。順位も自動で確定します</small>
       </a>
 
       <a class="big-choice" href="online/player.html">
-        🎫 オンラインゲームに参加する(プレイヤー)
-        <small>QRコード/ゲームコードで参加し、番号は自動でマークされます</small>
+        🎫 ゲームに参加する(プレイヤー)
+        <small>QRコードかゲームコードで参加。番号は自動マーク、ビンゴも自動で申告されます</small>
       </a>
     </section>
 
     <section class="panel">
-      <h2>あそびかた(オフラインモード)</h2>
+      <h2>▶️ あそびかた(オンライン)</h2>
       <p class="hint">
-        1. ホストが「ゲームを主催する」でゲームを作成すると、参加用QRコードが表示されます。<br>
-        2. 参加者はスマホでQRコードを読み取ると、自分だけのビンゴカードが配られます。<br>
-        3. ホストが番号を抽選し、読み上げます。参加者は自分のカードの番号をタップしてマークします。<br>
-        4. 縦・横・斜めのいずれか1列が揃ったらビンゴ!カードのQRコードをホストに見せると、その場で正当性を検証できます。
+        1. <strong>ホスト</strong>が「ゲームを主催する」でゲームを作成すると、参加用QRコードとゲームコード(4文字)が表示されます。TV・配信画面に映してください。<br>
+        2. <strong>参加者</strong>はスマホでQRコードを読み取る(またはゲームコードを入力)し、ニックネームを入れると、自分だけのビンゴカードが配られます。<br>
+        3. ホストが「抽選する!」を押すと、番号が全員の画面にリアルタイムで届き、<strong>カードは自動でマーク</strong>されます(タップ不要)。<br>
+        4. 勝利条件(初期は1ライン)に達すると<strong>自動でビンゴが申告</strong>され、あなたの順位が表示されます。<br>
+        5. ホストが「ゲームを終了」すると<strong>順位が確定</strong>。上位(景品数まで)の当選者には<strong>当選コード</strong>が表示されるので、主催者に伝えて景品を受け取ります。
+      </p>
+      <p class="hint">
+        ✨ 順位は「何球目でビンゴしたか」だけで決まるので、通信の速さや申告の早さは関係ありません。景品数を超える同着は公平に抽選されます。
+      </p>
+    </section>
+
+    <section class="panel">
+      <h2>🏠 オフラインで遊ぶ(会場向け・サーバー不要)</h2>
+      <p class="hint">同じ会場で、ホストが番号を読み上げて手でマークする昔ながらの方式。ネット接続や Firebase は不要です。</p>
+      <div class="btn-row">
+        <a class="big-choice" href="host.html" style="margin:0">
+          🎪 ホスト
+          <small>QR表示・抽選・ビンゴ検証</small>
+        </a>
+        <a class="big-choice" href="player.html" style="margin:0">
+          🎫 プレイヤー
+          <small>カード受取・手動マーク</small>
+        </a>
+      </div>
+      <p class="hint" style="margin-top:12px">
+        遊び方: ホストがゲーム作成 → 参加者がQRでカード受取 → ホストが番号を読み上げ → 参加者がタップでマーク → 1列そろったらビンゴ!カードのQRをホストに見せると、その場で検証できます。
       </p>
     </section>
   </main>
 
   <footer class="app-footer">
-    QRBingo — ブラウザだけで動く75球ビンゴ
+    QRBingo — QRコードで遊ぶ75球ビンゴ
   </footer>
 </body>
 </html>
