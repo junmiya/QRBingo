@@ -15,11 +15,17 @@
     "public": ".",
     "ignore": [
       "firebase.json",
+      ".firebaserc",
+      "firestore.rules",
+      "firestore.indexes.json",
       "**/.*",
       "**/node_modules/**",
       "functions/**",
+      "e2e/**",
       "specs/**",
-      ".specify/**"
+      ".specify/**",
+      ".github/**",
+      "README.md"
     ]
   },
   "emulators": {
