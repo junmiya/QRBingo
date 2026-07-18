@@ -1,5 +1,11 @@
 // QRBingo v2 (オンラインモード) — ホスト画面ロジック
-import { ensureSignedIn, callable, watchGame, watchDocPath } from './firebase-init.js';
+import {
+  ONLINE_AVAILABLE,
+  ensureSignedIn,
+  callable,
+  watchGame,
+  watchDocPath,
+} from './firebase-init.js';
 
 const $ = (id) => document.getElementById(id);
 const CURRENT_KEY = 'qrbingo:online:host:current';
@@ -311,6 +317,14 @@ $('reset-btn').addEventListener('click', handleReset);
 
 // ---------- 初期化 ----------
 (async () => {
+  if (!ONLINE_AVAILABLE) {
+    $('conn-status').className = 'hint error-text';
+    $('conn-status').innerHTML =
+      'オンラインモードは Firebase の設定が必要です。' +
+      'このサイトではまだ有効化されていません。<br>' +
+      '<a href="../index.html">オフラインモード</a>は今すぐ利用できます。';
+    return;
+  }
   await ensureSignedIn();
   $('conn-status').hidden = true;
 

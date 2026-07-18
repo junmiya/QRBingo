@@ -1,0 +1,49 @@
+name: Deploy to GitHub Pages
+
+# 静的サイト(v1 オフラインモード + v2 フロントエンド)を GitHub Pages に公開する。
+# v2 のオンライン機能は Firebase 設定が必要で、未設定の間は各ページが
+# 「Firebase の設定が必要」と案内を表示する(js/online/firebase-init.js)。
+
+on:
+  push:
+    branches: [claude/qr-code-bingo-game-y9ix04]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同時デプロイを1本に絞る(進行中はキャンセルしない = 公開を取りこぼさない)
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Pages 公開用に静的ファイルだけを _site へ集める
+      # (functions/ specs/ e2e/ など実行時に不要なものは除外)
+      - name: Assemble static site
+        run: |
+          mkdir -p _site
+          cp index.html host.html player.html _site/
+          cp -r css js lib online _site/
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,7 +1,13 @@
 // QRBingo v2 (オンラインモード) — プレイヤー画面ロジック
 // 手動タップは廃止し、サーバーの抽選結果(draws)から自動でマークする。
 // 勝利条件に達したら自動で submitClaim を送り、順位・当選コードを表示する。
-import { ensureSignedIn, callable, watchGame, watchDocPath } from './firebase-init.js';
+import {
+  ONLINE_AVAILABLE,
+  ensureSignedIn,
+  callable,
+  watchGame,
+  watchDocPath,
+} from './firebase-init.js';
 
 const $ = (id) => document.getElementById(id);
 const LAST_GAME_KEY = 'qrbingo:online:player:last';
@@ -266,6 +272,14 @@ $('error-retry-btn').addEventListener('click', () => {
 
 // ---------- 初期化 ----------
 (async () => {
+  if (!ONLINE_AVAILABLE) {
+    $('conn-status').className = 'hint error-text';
+    $('conn-status').innerHTML =
+      'オンラインモードは Firebase の設定が必要です。' +
+      'このサイトではまだ有効化されていません。<br>' +
+      '<a href="../index.html">オフラインモード</a>は今すぐ利用できます。';
+    return;
+  }
   const user = await ensureSignedIn();
   myUid = user.uid;
   $('conn-status').hidden = true;

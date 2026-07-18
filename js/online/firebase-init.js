@@ -25,6 +25,14 @@ import { firebaseConfig } from './firebase-config.js';
 
 const IS_LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname);
 
+// firebase-config.js が本番プロジェクト値に差し替え済みか判定する。
+// 既定は Emulator 専用のプレースホルダー(projectId が "demo-" 始まり)。
+// localhost では Emulator に接続するため常に利用可能。それ以外の環境
+// (公開ホスティング)では本番設定が入っている場合のみオンライン機能を有効化する。
+const IS_CONFIGURED =
+  !!firebaseConfig.projectId && !String(firebaseConfig.projectId).startsWith('demo-');
+const ONLINE_AVAILABLE = IS_LOCAL || IS_CONFIGURED;
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -81,4 +89,14 @@ function watchDocPath(segments, onChange) {
   });
 }
 
-export { app, auth, db, functions, ensureSignedIn, callable, watchGame, watchDocPath };
+export {
+  app,
+  auth,
+  db,
+  functions,
+  ONLINE_AVAILABLE,
+  ensureSignedIn,
+  callable,
+  watchGame,
+  watchDocPath,
+};
