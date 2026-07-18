@@ -33,7 +33,11 @@ jobs:
           cp index.html host.html player.html _site/
           cp -r css js lib online _site/
 
+      # enablement: true で、Pages 未設定のリポジトリでも Actions ソースとして
+      # 自動的に有効化を試みる(pages: write 権限が必要 — 上で付与済み)
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
