@@ -57,6 +57,48 @@ firebase deploy --only firestore:rules,functions,hosting
 
 ---
 
+## 課金(Stripe)のセットアップ
+
+**シークレットキーは誰にも渡さないでください。** 商品/価格の作成は、あなたのキーで
+下記スクリプトを実行して行います(冪等・何度実行しても安全)。
+
+### 1. Stripe 商品/価格を作成
+
+```bash
+cd functions && npm install     # 初回のみ(stripe を含む)
+
+# まずテストモードで作成して確認
+STRIPE_SECRET_KEY=sk_test_xxxxx npm run setup-stripe
+
+# 確認できたら本番でも作成
+STRIPE_SECRET_KEY=sk_live_xxxxx npm run setup-stripe
+```
+
+作成される価格(すべて一回払い・JPY):
+
+| lookup_key | 内容 | 金額 |
+|---|---|---|
+| `qrbingo_onetime_300` | 都度 300人(1ヶ月・複数月は数量で) | ¥1,000 |
+| `qrbingo_onetime_1000` | 都度 1000人(1ヶ月) | ¥3,000 |
+| `qrbingo_annual_300` | 年 300人 | ¥3,000 |
+| `qrbingo_annual_1000` | 年 1000人 | ¥10,000 |
+
+各価格の metadata に `maxPlayers` / `durationDays` / `kind` が入り、購入時に Webhook が
+これを読んで entitlement(人数上限・有効期限)を付与します(価格IDのハードコード不要)。
+1000人超のカスタムは Stripe ダッシュボードで個別価格を作り、同じ metadata を設定します。
+
+### 2.(次段)Checkout と Webhook のキー設定
+
+Checkout / Webhook Function 実装後に、キーを Firebase Secrets に投入します
+(**あなたの手元で実行**。私にキーを渡す必要はありません):
+
+```bash
+firebase functions:secrets:set STRIPE_SECRET_KEY
+firebase functions:secrets:set STRIPE_WEBHOOK_SECRET
+```
+
+---
+
 ## v1(オフラインモード)だけをすぐ公開する
 
 Firebase 不要。**GitHub Pages** が最短です。
