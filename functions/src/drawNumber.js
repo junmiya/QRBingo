@@ -3,6 +3,7 @@
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { FieldValue, Timestamp } = require('firebase-admin/firestore');
 const { db } = require('./admin');
+const { flushLeaderboardIfDirty } = require('./lib/leaderboardService');
 
 const TOTAL_BALLS = 75;
 
@@ -15,7 +16,7 @@ exports.drawNumber = onCall(async (request) => {
 
   const ref = db.collection('games').doc(gameId);
 
-  return db.runTransaction(async (tx) => {
+  const result = await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     if (!snap.exists) throw new HttpsError('not-found', 'ゲームが見つかりません');
 
@@ -47,4 +48,14 @@ exports.drawNumber = onCall(async (request) => {
 
     return { n, ballIndex, revealAt: revealAt.toDate().toISOString() };
   }, { maxAttempts: 10 }); // 抽選ボタン連打の直列化を確実にする(Edge Case)
+
+  // スロットリングで保留中のランキングがあれば、この抽選のタイミングで確定反映する
+  // (末尾のクレームを取りこぼさないため)。失敗しても抽選自体は成立済みなので握りつぶす。
+  try {
+    await flushLeaderboardIfDirty(gameId);
+  } catch (e) {
+    // no-op(次の抽選か finishGame で必ず反映される)
+  }
+
+  return result;
 });

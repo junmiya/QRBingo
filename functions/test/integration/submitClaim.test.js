@@ -54,7 +54,8 @@ describe('submitClaim (integration)', () => {
     expect(res.status).toBe('verified');
     expect(res.achievedBallIndex).toBe(expected);
     expect(res.lines).toBeGreaterThanOrEqual(1);
-    expect(res.provisionalRank).toBe(1);
+    // 順位は leaderboard 購読で反映するため、submitClaim の戻り値には含めない
+    expect(res.provisionalRank).toBeUndefined();
 
     const claim = (await db.doc(`claims/${gameId}_${player}`).get()).data();
     expect(claim.status).toBe('verified');

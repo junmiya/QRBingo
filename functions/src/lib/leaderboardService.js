@@ -80,19 +80,50 @@ async function rebuildPublicLeaderboard(gameId) {
   });
 }
 
-// 暫定順位(competition rank)を1人分だけ算出。verified クレームのうち
-// achievedBallIndex が厳密に小さい件数 + 1。
-async function provisionalRankOf(gameId, achievedBallIndex) {
-  const claims = await fetchVerifiedClaims(gameId);
-  const better = claims.filter((c) => c.achievedBallIndex < achievedBallIndex).length;
-  return better + 1;
+// ---- スロットリング(大人数時のコスト最適化) ----
+// クレームのたびに全クレーム+全カードを読んで再構築(O(N))し、全員へ配信すると
+// 1ゲームで O(N^2) の読み取りが発生する(1000人で数百万リード)。
+// これを「一定間隔に最大1回だけ再構築」に制限し、コストを O(時間/間隔 × N) に抑える。
+// 取りこぼした最後のクレームは drawNumber 後の flush と finishGame の force で必ず反映される。
+const LEADERBOARD_THROTTLE_MS = 3000;
+
+// スロットリング付き再構築。force=true なら即時、そうでなければ前回から
+// LEADERBOARD_THROTTLE_MS 以上経過している場合のみ再構築し、未満なら dirty フラグだけ立てる。
+async function rebuildLeaderboardThrottled(gameId, opts = {}) {
+  if (opts.force) {
+    await rebuildPublicLeaderboard(gameId);
+    await db.doc(`games/${gameId}`).set({ leaderboardDirty: false }, { merge: true });
+    return true;
+  }
+  const lbSnap = await db.doc(`games/${gameId}/public/leaderboard`).get();
+  const last =
+    lbSnap.exists && lbSnap.data().updatedAt ? lbSnap.data().updatedAt.toMillis() : 0;
+  if (Date.now() - last >= LEADERBOARD_THROTTLE_MS) {
+    await rebuildPublicLeaderboard(gameId);
+    await db.doc(`games/${gameId}`).set({ leaderboardDirty: false }, { merge: true });
+    return true;
+  }
+  // まだ間隔内。再構築は見送り、保留中であることだけ記録(安価な単一フィールド書き込み)。
+  await db.doc(`games/${gameId}`).set({ leaderboardDirty: true }, { merge: true });
+  return false;
+}
+
+// 保留中(dirty)の leaderboard を確定反映する。drawNumber 後に呼び、
+// スロットリングで見送られた末尾のクレームを次の抽選のタイミングで反映させる。
+async function flushLeaderboardIfDirty(gameId) {
+  const gameSnap = await db.doc(`games/${gameId}`).get();
+  if (!gameSnap.exists || !gameSnap.data().leaderboardDirty) return false;
+  await rebuildPublicLeaderboard(gameId);
+  await db.doc(`games/${gameId}`).set({ leaderboardDirty: false }, { merge: true });
+  return true;
 }
 
 module.exports = {
   fetchVerifiedClaims,
   fetchCards,
   rebuildPublicLeaderboard,
-  provisionalRankOf,
+  rebuildLeaderboardThrottled,
+  flushLeaderboardIfDirty,
   HIDDEN_LABEL,
   UNKNOWN_LABEL,
 };

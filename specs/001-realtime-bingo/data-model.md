@@ -25,6 +25,11 @@ Firestore コレクション設計。**すべての write は Cloud Functions �
 制約: `draws[].n` は一意。`status` 遷移は lobby→playing→finished→expired の一方向。
 `settings` は `startedAt` 確定後は不変(FR-002)。
 
+補助フィールド `leaderboardDirty`(boolean): 公開ランキング再構築のスロットリング用。
+submitClaim が間隔内で再構築を見送った際に true。drawNumber 後の flush と finishGame で false に戻る。
+大人数時に「クレームごとの全再計算+全配信(O(N²))」を「一定間隔に最大1回(O(時間/間隔×N))」へ
+抑えるための最適化(1000人規模のコストを約1/30以下に削減)。
+
 ## cards/{cardId}
 
 参加者のカード。read は所有者のみ。`cardId = {gameId}_{uid}` とし「1 UID 1 カード」(FR-003)を

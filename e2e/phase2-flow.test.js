@@ -80,11 +80,22 @@ async function run() {
     assert.ok(allClaimed, '全プレイヤーがビンゴ・クレーム到達するはず');
     log('all players claimed (rank panels visible)');
 
-    // ホスト側に暫定ランキングが表示される
+    // 暫定ランキングはスロットリングで結果整合(次の抽選で flush される)。
+    // ホストは実運用では抽選を続けるため、追加で数回引いて反映を促す。
     await host.waitForSelector('#ranking-panel:not([hidden])', { timeout: 8000 });
-    const provisionalRows = await host.locator('#ranking-body tbody tr').count();
-    assert.equal(provisionalRows, 3, '暫定ランキングに3人');
-    log('host shows provisional ranking (3 rows)');
+    for (let k = 0; k < 3; k++) {
+      const drawn = await host.evaluate(() => document.querySelectorAll('#history .chip').length);
+      if (drawn >= 75) break;
+      await host.waitForSelector('#draw-btn:not([disabled])', { timeout: 8000 });
+      await host.click('#draw-btn');
+      await host.waitForFunction((n) => document.querySelectorAll('#history .chip').length === n, drawn + 1, { timeout: 8000 });
+    }
+    await host.waitForFunction(
+      () => document.querySelectorAll('#ranking-body tbody tr').length === 3,
+      null,
+      { timeout: 8000 }
+    );
+    log('host provisional ranking reaches 3 rows after flush');
 
     // ゲーム終了 → 順位確定
     host.once('dialog', (d) => d.accept());

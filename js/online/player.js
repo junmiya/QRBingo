@@ -162,13 +162,22 @@ async function maybeClaim(bingoLineCount) {
     const res = await submitClaimFn({ gameId: currentGameId });
     if (res.status === 'verified') {
       claimed = true;
-      showRank(res.provisionalRank, false);
+      // 順位はサーバーのランキング再構築(スロットリング)後に leaderboard 購読で届く。
+      // それまでは集計中プレースホルダーを表示する。
+      showRankPending();
     }
   } catch (e) {
     // 一時的な失敗(通信断など)は次回のスナップショットで再試行される
   } finally {
     claiming = false;
   }
+}
+
+function showRankPending() {
+  if (isWinnerFinal) return;
+  $('rank-panel').hidden = false;
+  $('rank-value').textContent = '—';
+  $('rank-note').textContent = '順位を集計中…';
 }
 
 function showRank(rank, isFinal) {
