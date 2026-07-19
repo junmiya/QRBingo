@@ -4,10 +4,12 @@ const { createGame } = require('../../src/createGame');
 const { joinGame } = require('../../src/joinGame');
 const { generateCard } = require('../../src/lib/bingo');
 const { db } = require('../../src/admin');
-const { uid } = require('./_helpers');
+const { uid, grantEntitlement } = require('./_helpers');
 
 async function makeGame(overrides = {}) {
   const host = uid();
+  // 課金ゲートの影響を受けないよう、参加テストのホストは上限を引き上げておく
+  await grantEntitlement(host, 100000);
   const res = await createGame.run({ data: overrides, auth: { uid: host } });
   return { gameId: res.gameId, host };
 }

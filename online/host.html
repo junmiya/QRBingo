@@ -21,13 +21,15 @@
       <h2>🎪 オンラインゲームを作成</h2>
       <p class="hint">TV・配信画面にQRコードを表示し、視聴者にネットワーク経由でカードを配布します。</p>
 
+      <p class="plan-badge" id="plan-badge" hidden></p>
+
       <div style="margin-top:14px">
         <label class="hint" for="in-winlines">勝利条件(ライン数)</label>
         <input type="text" id="in-winlines" value="1" inputmode="numeric" style="text-transform:none">
       </div>
       <div style="margin-top:10px">
-        <label class="hint" for="in-capacity">定員(空欄で無制限)</label>
-        <input type="text" id="in-capacity" placeholder="無制限" inputmode="numeric" style="text-transform:none">
+        <label class="hint" for="in-capacity">定員 <span id="capacity-hint" class="hint"></span></label>
+        <input type="text" id="in-capacity" placeholder="上限まで" inputmode="numeric" style="text-transform:none">
       </div>
       <div style="margin-top:10px">
         <label class="hint" for="in-prizes">景品数</label>

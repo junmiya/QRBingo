@@ -55,6 +55,14 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // 課金プラン(人数上限・有効期限)。本人のみ read。
+    // write は Stripe Webhook / 運営(Admin SDK・コンソール)のみ。カード情報等の
+    // PII は保持しない(Stripe 側に隔離)。
+    match /entitlements/{uid} {
+      allow read: if signedIn() && uid == request.auth.uid;
+      allow write: if false;
+    }
+
     // ビンゴ申告: 結果は submitClaim の戻り値で本人に返すため、
     // Firestore からの直接購読は許可しない(Functions 内部専用)
     match /claims/{claimId} {

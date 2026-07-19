@@ -376,8 +376,11 @@ $('reset-btn').addEventListener('click', handleReset);
       '<a href="../index.html">オフラインモード</a>は今すぐ利用できます。';
     return;
   }
-  await ensureSignedIn();
+  const user = await ensureSignedIn();
   $('conn-status').hidden = true;
+
+  // 課金プラン(人数上限)を購読して作成フォームに表示する
+  watchDocPath(['entitlements', user.uid], renderPlan);
 
   const saved = QRB.loadJSON(CURRENT_KEY, null);
   if (saved && saved.gameId) {
@@ -387,3 +390,26 @@ $('reset-btn').addEventListener('click', handleReset);
     showPanel('create-panel');
   }
 })();
+
+// ---------- 課金プラン表示 ----------
+const FREE_MAX_PLAYERS = 20;
+function renderPlan(ent) {
+  let maxPlayers = FREE_MAX_PLAYERS;
+  let label = '無料プラン';
+  if (ent && Number.isInteger(ent.maxPlayers) && ent.maxPlayers > 0) {
+    const validMs = ent.validUntil && ent.validUntil.toMillis ? ent.validUntil.toMillis() : null;
+    const expired = validMs != null && validMs < Date.now();
+    if (!expired) {
+      maxPlayers = ent.maxPlayers;
+      label = `${ent.plan || '有料'}プラン`;
+    }
+  }
+  const badge = $('plan-badge');
+  badge.hidden = false;
+  badge.textContent =
+    maxPlayers >= FREE_MAX_PLAYERS && label === '無料プラン'
+      ? `現在のプラン: 無料(1ゲーム最大 ${maxPlayers} 人)`
+      : `現在のプラン: ${label}(1ゲーム最大 ${maxPlayers} 人)`;
+  $('capacity-hint').textContent = `(最大 ${maxPlayers} 人・空欄で上限まで)`;
+  $('in-capacity').setAttribute('placeholder', `最大 ${maxPlayers}`);
+}

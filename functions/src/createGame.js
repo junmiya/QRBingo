@@ -4,6 +4,7 @@ const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { FieldValue } = require('firebase-admin/firestore');
 const { db } = require('./admin');
 const { newGameId } = require('./lib/ids');
+const { getEntitlement } = require('./lib/entitlements');
 
 const DEFAULTS = {
   winLines: 1,
@@ -36,11 +37,24 @@ exports.createGame = onCall(async (request) => {
   const revealDelaySecR = parseIntSetting(input.revealDelaySec, 0, 60, DEFAULTS.revealDelaySec);
   if (!revealDelaySecR.ok) throw new HttpsError('invalid-argument', 'revealDelaySec は 0〜60 の整数で指定してください');
 
-  let capacity = DEFAULTS.capacity;
+  // 課金プラン(entitlement)による参加人数上限の適用(spec 002・FR-M2)。
+  // 無料は20人。有料/管理で上限が引き上げられる。上限超過の要求は拒否し、
+  // capacity 未指定(=従来の無制限)はプラン上限に丸める(無料の無制限を禁止)。
+  const entitlement = await getEntitlement(request.auth.uid);
+  let capacity;
   if (input.capacity !== undefined && input.capacity !== null) {
     const capacityR = parseIntSetting(input.capacity, 1, 100000, undefined);
     if (!capacityR.ok) throw new HttpsError('invalid-argument', 'capacity は 1〜100000 の整数か null で指定してください');
+    if (capacityR.value > entitlement.maxPlayers) {
+      throw new HttpsError(
+        'failed-precondition',
+        `このプランの上限は ${entitlement.maxPlayers} 人です。より大人数にするにはアップグレードしてください`
+      );
+    }
     capacity = capacityR.value;
+  } else {
+    // 未指定は上限そのものを既定にする(無料でも最大20人まで参加可能)
+    capacity = entitlement.maxPlayers;
   }
 
   const prizeCountR = parseIntSetting(input.prizeCount, 1, 100, DEFAULTS.prizeCount);

@@ -2,14 +2,14 @@
 
 const { createGame } = require('../../src/createGame');
 const { db } = require('../../src/admin');
-const { uid } = require('./_helpers');
+const { uid, grantEntitlement } = require('./_helpers');
 
 describe('createGame (integration, Firestore emulator)', () => {
   test('rejects unauthenticated calls', async () => {
     await expect(createGame.run({ data: {} })).rejects.toMatchObject({ code: 'unauthenticated' });
   });
 
-  test('creates a game with defaults', async () => {
+  test('creates a game with defaults (無料プランは capacity が上限20に丸まる)', async () => {
     const res = await createGame.run({ data: {}, auth: { uid: uid() } });
     expect(res.gameId).toMatch(/^[A-Z0-9]{4}$/);
 
@@ -20,7 +20,7 @@ describe('createGame (integration, Firestore emulator)', () => {
     expect(game.settings).toEqual({
       winLines: 1,
       revealDelaySec: 0,
-      capacity: null,
+      capacity: 20, // entitlement 未設定=無料(20人)。未指定 capacity は上限に丸まる
       allowDuplicateCards: false,
       prizeCount: 3,
     });
@@ -29,9 +29,11 @@ describe('createGame (integration, Firestore emulator)', () => {
   });
 
   test('accepts custom settings within range', async () => {
+    const host = uid();
+    await grantEntitlement(host, 100000); // 上限を引き上げた(有料相当)ホスト
     const res = await createGame.run({
       data: { winLines: 3, revealDelaySec: 15, capacity: 100, allowDuplicateCards: true, prizeCount: 10 },
-      auth: { uid: uid() },
+      auth: { uid: host },
     });
     const game = (await db.collection('games').doc(res.gameId).get()).data();
     expect(game.settings).toEqual({

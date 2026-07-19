@@ -8,7 +8,7 @@ const { submitClaim } = require('../../src/submitClaim');
 const { finishGame } = require('../../src/finishGame');
 const { generateCard, findAchievedBallIndex } = require('../../src/lib/bingo');
 const { db } = require('../../src/admin');
-const { uid } = require('./_helpers');
+const { uid, grantEntitlement } = require('./_helpers');
 
 // ゲーム全体を通しでシミュレートし、ランキングが ballIndex 基準の
 // グラウンドトゥルースと完全一致することを検証する(SC-002 / US-4)。
@@ -16,6 +16,7 @@ describe('公平性シミュレーション (integration)', () => {
   test('N人参加・全球抽選で、最終順位が achievedBallIndex 順とグラウンドトゥルース一致', async () => {
     const PLAYERS = 60; // Emulator 実行時間の都合で 60(ロジックは人数非依存)
     const host = uid();
+    await grantEntitlement(host, 100000); // 大人数のため上限を引き上げ
     const { gameId } = await createGame.run({
       data: { winLines: 1, prizeCount: 5 },
       auth: { uid: host },
