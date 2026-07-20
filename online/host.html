@@ -80,6 +80,16 @@
         <button class="btn-primary" id="create-btn">ゲームを作成</button>
       </div>
       <p class="hint error-text" id="create-error"></p>
+
+      <div style="margin-top:18px; padding-top:14px; border-top:1px solid var(--line)">
+        <label class="hint" for="resume-code">進行中のゲームに再接続(ゲームコードを入力)</label>
+        <div style="display:flex; gap:8px; margin-top:6px; flex-wrap:wrap">
+          <input type="text" id="resume-code" placeholder="例: ABCD" maxlength="8" autocomplete="off" style="width:140px">
+          <button class="btn-ghost" id="resume-btn" style="width:auto">再接続</button>
+        </div>
+        <p class="hint">画面を閉じた/リセットした後でも、同じ端末なら自分のゲームに戻って「終了」できます。</p>
+        <p class="hint error-text" id="resume-error"></p>
+      </div>
     </section>
 
     <!-- ロビー(参加受付中) -->

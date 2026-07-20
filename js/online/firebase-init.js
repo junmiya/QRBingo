@@ -16,6 +16,7 @@ import {
   doc,
   collection,
   onSnapshot,
+  getDoc,
   query,
   orderBy,
   limit,
@@ -95,6 +96,12 @@ function watchGame(gameId, onChange) {
   });
 }
 
+// ゲームを一度だけ読む(再接続時のホスト確認などに使う)。存在しなければ null。
+async function readGame(gameId) {
+  const snap = await getDoc(doc(db, 'games', gameId));
+  return snap.exists() ? snap.data() : null;
+}
+
 // 任意のドキュメントパスを購読する汎用ヘルパー。
 // segments 例: ['games', gameId, 'public', 'leaderboard'] / ['winners', winnerId]
 function watchDocPath(segments, onChange) {
@@ -137,6 +144,7 @@ export {
   ensureSignedIn,
   callable,
   watchGame,
+  readGame,
   watchDocPath,
   watchCollectionPath,
   watchOrdered,

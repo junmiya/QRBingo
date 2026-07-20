@@ -4,6 +4,7 @@ import {
   ensureSignedIn,
   callable,
   watchGame,
+  readGame,
   watchDocPath,
   watchCollectionPath,
 } from './firebase-init.js';
@@ -28,6 +29,7 @@ const BALL_COLORS = ['var(--col-b)', 'var(--col-i)', 'var(--col-n)', 'var(--col-
 const ballColor = (n) => BALL_COLORS[Math.floor((n - 1) / 15)];
 
 let gameId = null;
+let myUid = null;
 let unwatch = null;
 let unwatchLeaderboard = null;
 let unwatchResults = null;
@@ -266,6 +268,40 @@ async function handleCountdownStop() {
     await setCountdownFn({ gameId, seconds: 0 });
   } catch (err) {
     $('live-error').textContent = err.message || String(err);
+  }
+}
+
+// ---------- 進行中ゲームへの再接続 ----------
+async function handleResume() {
+  const code = ($('resume-code').value || '').trim().toUpperCase();
+  $('resume-error').textContent = '';
+  if (!/^[A-Z0-9]{4,8}$/.test(code)) {
+    $('resume-error').textContent = 'ゲームコードを入力してください';
+    return;
+  }
+  $('resume-btn').disabled = true;
+  try {
+    const game = await readGame(code);
+    if (!game) {
+      $('resume-error').textContent = 'そのゲームは見つかりません';
+      return;
+    }
+    if (game.hostUid !== myUid) {
+      $('resume-error').textContent =
+        'このゲームのホストではありません(別の端末やブラウザで作成された可能性があります)';
+      return;
+    }
+    if (game.status === 'finished' || game.status === 'expired') {
+      $('resume-error').textContent = 'このゲームは既に終了しています';
+      return;
+    }
+    gameId = code;
+    QRB.saveJSON(CURRENT_KEY, { gameId });
+    attachWatcher();
+  } catch (err) {
+    $('resume-error').textContent = err.message || String(err);
+  } finally {
+    $('resume-btn').disabled = false;
   }
 }
 
@@ -555,7 +591,12 @@ async function handleRankingClick(ev) {
 }
 
 function handleReset() {
-  if (!confirm('表示をリセットしますか?\n(進行中のゲーム自体は継続され、参加者には影響しません)')) return;
+  if (!confirm(
+    '表示をリセットしますか?\n\n' +
+    '※ 進行中のゲームは「終了」しません(参加者はそのまま継続)。\n' +
+    'ゲームを本当に終わらせたいときは、先に「🏁 ゲームを終了して順位を確定」を押してください。\n' +
+    'リセット後も、同じ端末なら下の「再接続」にゲームコードを入れて戻れます。'
+  )) return;
   if (unwatch) unwatch();
   if (unwatchLeaderboard) unwatchLeaderboard();
   if (unwatchResults) unwatchResults();
@@ -583,6 +624,7 @@ $('draw-btn').addEventListener('click', handleDraw);
 $('finish-btn').addEventListener('click', handleFinish);
 $('ranking-body').addEventListener('click', handleRankingClick);
 $('reset-btn').addEventListener('click', handleReset);
+$('resume-btn').addEventListener('click', handleResume);
 $('upgrade-toggle').addEventListener('click', toggleUpgrade);
 $('upgrade-plans').addEventListener('click', handleUpgrade);
 $('connect-btn').addEventListener('click', handleConnect);
@@ -601,6 +643,7 @@ $('countdown-stop').addEventListener('click', handleCountdownStop);
     return;
   }
   const user = await ensureSignedIn();
+  myUid = user.uid;
   $('conn-status').hidden = true;
 
   // 決済からの戻り(?checkout=success|cancel)の案内
