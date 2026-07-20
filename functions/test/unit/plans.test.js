@@ -32,8 +32,9 @@ describe('課金プラン定義 (spec 002)', () => {
     expect(PRICE_TO_PLAN_TEST[id]).toBe('onetime_300');
   });
 
-  test('priceIdForPlan は本番未登録なら null', () => {
-    expect(priceIdForPlan('onetime_300', true)).toBeNull();
+  test('priceIdForPlan は本番の登録済み Price ID を返す', () => {
+    expect(priceIdForPlan('onetime_300', true)).toBe('price_1TvF8R3fM9MR8XaqeDq5YArB');
+    expect(priceIdForPlan('annual_1000', true)).toBe('price_1TvF9c3fM9MR8Xaq3IHLDX3L');
   });
 
   test('planFromPrice はマップから付与内容を解決する', () => {

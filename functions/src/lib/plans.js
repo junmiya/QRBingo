@@ -19,7 +19,10 @@ const PRICE_TO_PLAN_TEST = {
   price_1Tv5JR3fM9MR8XaqJJbgH4Vy: 'annual_1000',
 };
 const PRICE_TO_PLAN_LIVE = {
-  // 本番モードで商品を作成したら、ここに price_... = 'onetime_300' … を追記する。
+  price_1TvF8R3fM9MR8XaqeDq5YArB: 'onetime_300',
+  price_1TvF8p3fM9MR8XaqOOHrDllb: 'onetime_1000',
+  price_1TvF9J3fM9MR8XaquzVlZRPe: 'annual_300',
+  price_1TvF9c3fM9MR8Xaq3IHLDX3L: 'annual_1000',
   // metadata(maxPlayers/durationDays/kind)を設定した価格なら、この表になくても
   // planFromPrice が metadata から解決する(setup-stripe.js 経由で作成した場合)。
 };
