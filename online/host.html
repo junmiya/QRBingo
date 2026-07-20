@@ -24,6 +24,19 @@
         <button class="btn-primary" id="login-btn" hidden>Googleでログイン</button>
         <button class="btn-ghost" id="logout-btn" hidden>ログアウト</button>
       </div>
+
+      <!-- メール/パスワードでログイン(または新規登録) -->
+      <div id="email-login" hidden style="margin-top:12px; padding-top:12px; border-top:1px solid var(--line)">
+        <label class="hint">またはメール/パスワードでログイン(初回は自動で登録)</label>
+        <div style="display:flex; gap:8px; margin-top:6px; flex-wrap:wrap">
+          <input type="email" id="login-email" placeholder="メールアドレス" autocomplete="username" style="flex:1; min-width:180px; text-transform:none">
+        </div>
+        <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap">
+          <input type="password" id="login-pass" placeholder="パスワード(6文字以上)" autocomplete="current-password" style="flex:1; min-width:180px; text-transform:none">
+          <button class="btn-ghost" id="email-login-btn" style="width:auto">ログイン / 登録</button>
+        </div>
+      </div>
+
       <p class="hint">参加者はログイン不要です。ログインが必要なのは<strong>プラン購入・投げ銭の受け取りをする主催者</strong>だけ。ログインするとプランや設定が端末をまたいで引き継がれ、買ったプランを失いません。</p>
       <p class="hint error-text" id="account-error"></p>
     </section>

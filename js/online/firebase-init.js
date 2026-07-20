@@ -13,6 +13,9 @@ import {
   linkWithPopup,
   signInWithPopup,
   signOut,
+  EmailAuthProvider,
+  linkWithCredential,
+  signInWithEmailAndPassword,
 } from '../../lib/firebase/firebase-auth.js';
 import {
   getFirestore,
@@ -113,6 +116,29 @@ async function linkGoogle() {
   }
 }
 
+// メール/パスワードでログイン(または新規登録)。匿名なら linkWithCredential で
+// 昇格(UID維持=entitlement引き継ぎ)。既に存在するメールならサインインに切替。
+async function linkEmail(email, password) {
+  const cred = EmailAuthProvider.credential(email, password);
+  const user = auth.currentUser;
+  try {
+    if (user && user.isAnonymous) {
+      const res = await linkWithCredential(user, cred);
+      return res.user;
+    }
+    const res = await signInWithEmailAndPassword(auth, email, password);
+    return res.user;
+  } catch (err) {
+    const code = String((err && err.code) || '');
+    if (code.includes('email-already-in-use') || code.includes('credential-already-in-use')) {
+      // 既存アカウント → そのメール/パスワードでサインイン
+      const res = await signInWithEmailAndPassword(auth, email, password);
+      return res.user;
+    }
+    throw err;
+  }
+}
+
 async function signOutHost() {
   await signOut(auth);
 }
@@ -179,6 +205,7 @@ export {
   ensureSignedIn,
   onUser,
   linkGoogle,
+  linkEmail,
   signOutHost,
   callable,
   watchGame,

@@ -4,6 +4,7 @@ import {
   ensureSignedIn,
   onUser,
   linkGoogle,
+  linkEmail,
   signOutHost,
   callable,
   watchGame,
@@ -646,6 +647,8 @@ $('upgrade-plans').addEventListener('click', handleUpgrade);
 $('connect-btn').addEventListener('click', handleConnect);
 $('login-btn').addEventListener('click', handleLogin);
 $('logout-btn').addEventListener('click', handleLogout);
+$('email-login-btn').addEventListener('click', handleEmailLogin);
+$('login-pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') handleEmailLogin(); });
 $('chat-toggle-btn').addEventListener('click', handleChatToggle);
 $('countdown-start').addEventListener('click', handleCountdownStart);
 $('countdown-stop').addEventListener('click', handleCountdownStop);
@@ -702,11 +705,44 @@ function renderAuth(user) {
       '未ログインです。<strong>プラン購入・投げ銭の受け取りにはログインが必要</strong>です。';
     loginBtn.hidden = false;
     logoutBtn.hidden = true;
+    $('email-login').hidden = false;
   } else {
     const who = user.email || user.displayName || 'ログイン済み';
     status.innerHTML = `✅ ログイン中: <strong>${esc(who)}</strong>(プランは端末をまたいで引き継がれます)`;
     loginBtn.hidden = true;
     logoutBtn.hidden = false;
+    $('email-login').hidden = true;
+  }
+}
+
+async function handleEmailLogin() {
+  $('account-error').textContent = '';
+  const email = ($('login-email').value || '').trim();
+  const pass = $('login-pass').value || '';
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    $('account-error').textContent = 'メールアドレスの形式が正しくありません。';
+    return;
+  }
+  if (pass.length < 6) {
+    $('account-error').textContent = 'パスワードは6文字以上で入力してください。';
+    return;
+  }
+  $('email-login-btn').disabled = true;
+  try {
+    await linkEmail(email, pass);
+    $('login-pass').value = '';
+    // 認証状態は onUser 購読で反映される
+  } catch (err) {
+    const code = String((err && err.code) || '');
+    if (code.includes('wrong-password') || code.includes('invalid-credential')) {
+      $('account-error').textContent = 'パスワードが違います(既に登録済みのメールの場合)。';
+    } else if (code.includes('weak-password')) {
+      $('account-error').textContent = 'パスワードが弱すぎます。6文字以上にしてください。';
+    } else {
+      $('account-error').textContent = err.message || String(err);
+    }
+  } finally {
+    $('email-login-btn').disabled = false;
   }
 }
 
