@@ -240,6 +240,32 @@ header.app-header {
 .chat-input-row input { flex: 1; }
 .chat-input-row button { width: auto; flex-shrink: 0; }
 
+/* ---------- 法的ページ ---------- */
+.legal { line-height: 1.9; }
+.legal h2 { font-size: 1.05rem; margin: 22px 0 6px; color: var(--text); }
+.legal p, .legal li { color: var(--text); font-size: .98rem; }
+.legal ul { padding-left: 1.3em; }
+.legal a { color: var(--accent); }
+.legal-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+.legal-table th, .legal-table td {
+  border: 1px solid var(--line);
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: top;
+  font-size: .95rem;
+}
+.legal-table th {
+  width: 34%;
+  background: var(--panel-2);
+  font-weight: 700;
+  white-space: nowrap;
+}
+@media (max-width: 520px) {
+  .legal-table, .legal-table tbody, .legal-table tr, .legal-table th, .legal-table td { display: block; width: 100%; }
+  .legal-table th { border-bottom: none; white-space: normal; }
+  .legal-table td { border-top: none; }
+}
+
 /* ---------- buttons ---------- */
 button {
   font: inherit;
