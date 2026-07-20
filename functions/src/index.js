@@ -11,3 +11,6 @@ exports.markWinnerHandled = require('./markWinnerHandled').markWinnerHandled;
 exports.reportReach = require('./reportReach').reportReach;
 exports.createCheckout = require('./createCheckout').createCheckout;
 exports.stripeWebhook = require('./stripeWebhook').stripeWebhook;
+exports.createConnectAccount = require('./connectOnboard').createConnectAccount;
+exports.refreshConnectStatus = require('./connectOnboard').refreshConnectStatus;
+exports.createTipCheckout = require('./createTipCheckout').createTipCheckout;

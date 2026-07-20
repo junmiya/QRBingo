@@ -42,6 +42,12 @@ service cloud.firestore {
         allow write: if false;
       }
 
+      // 投げ銭の明細(金額・件数)。ホストのみ閲覧可。書き込みは Webhook のみ。
+      match /tips/{tipId} {
+        allow read: if isHost(gameId);
+        allow write: if false;
+      }
+
       // 重複カード排除用のロック。クライアントに公開する情報を持たない
       match /gridHashes/{hash} {
         allow read: if false;
@@ -65,6 +71,19 @@ service cloud.firestore {
 
     // Stripe Webhook の冪等記録(処理済みセッションID)。内部専用・クライアント非公開。
     match /stripeEvents/{sessionId} {
+      allow read: if false;
+      allow write: if false;
+    }
+
+    // Stripe Connect の接続状態(投げ銭の受取可否)。本人のみ read。
+    // write は Connect オンボーディング Function / Webhook のみ。PII は保持しない。
+    match /hostAccounts/{uid} {
+      allow read: if signedIn() && uid == request.auth.uid;
+      allow write: if false;
+    }
+
+    // 運営設定(投げ銭手数料率など)。クライアント非公開・コンソール/管理のみ。
+    match /config/{docId} {
       allow read: if false;
       allow write: if false;
     }

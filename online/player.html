@@ -68,6 +68,20 @@
         </div>
         <p class="card-id-label" id="nickname-label"></p>
       </section>
+
+      <!-- 投げ銭(ホストが受け取り設定をしている場合のみ表示) -->
+      <section class="panel" id="tip-panel" hidden>
+        <h2>🎁 ホストを応援(投げ銭)</h2>
+        <p class="hint">勝敗には関係ありません。主催者への「応援」として送れます。決済は Stripe(安全な外部決済)で行われ、カード情報はこのサイトには保存されません。</p>
+        <p class="checkout-banner" id="tip-banner" hidden></p>
+        <div class="tip-grid">
+          <button class="tip-btn" data-amount="100" type="button">¥100</button>
+          <button class="tip-btn" data-amount="300" type="button">¥300</button>
+          <button class="tip-btn" data-amount="500" type="button">¥500</button>
+          <button class="tip-btn" data-amount="1000" type="button">¥1,000</button>
+        </div>
+        <p class="hint error-text" id="tip-error"></p>
+      </section>
     </div>
   </main>
 

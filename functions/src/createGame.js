@@ -62,6 +62,16 @@ exports.createGame = onCall(async (request) => {
 
   const allowDuplicateCards = Boolean(input.allowDuplicateCards);
 
+  // 投げ銭(Phase B): ホストが Connect 接続済み(受取可能)なら、このゲームで投げ銭を
+  // 受け付ける。プレイヤー画面はこのフラグで投げ銭ボタンの表示可否を判断する。
+  let tipsEnabled = false;
+  try {
+    const acct = await db.doc(`hostAccounts/${request.auth.uid}`).get();
+    tipsEnabled = !!(acct.exists && acct.data().chargesEnabled);
+  } catch (e) {
+    tipsEnabled = false;
+  }
+
   for (let attempt = 0; attempt < MAX_GAME_ID_ATTEMPTS; attempt++) {
     const gameId = newGameId();
     const ref = db.collection('games').doc(gameId);
@@ -82,6 +92,9 @@ exports.createGame = onCall(async (request) => {
         draws: [],
         participantCount: 0,
         reachCount: 0,
+        tipsEnabled,
+        tipTotalNet: 0,
+        tipCount: 0,
         createdAt: FieldValue.serverTimestamp(),
         startedAt: null,
         finishedAt: null,

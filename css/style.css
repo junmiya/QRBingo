@@ -146,6 +146,28 @@ header.app-header {
 .plan-card b { font-size: 1rem; }
 .plan-card .plan-price { font-size: 1.25rem; font-weight: 800; color: var(--accent); }
 
+/* ---------- 投げ銭(プレイヤー) ---------- */
+.tip-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 12px 0 4px;
+}
+@media (max-width: 480px) {
+  .tip-grid { grid-template-columns: repeat(2, 1fr); }
+}
+.tip-btn {
+  padding: 14px 8px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+.tip-btn:hover { border-color: var(--accent); background: var(--panel-2); color: var(--accent); }
+.tip-btn:disabled { opacity: .6; }
+
 /* ---------- buttons ---------- */
 button {
   font: inherit;

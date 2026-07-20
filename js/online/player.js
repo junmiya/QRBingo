@@ -16,6 +16,7 @@ const SECTIONS = ['gamecode-panel', 'nickname-panel', 'error-panel', 'game-area'
 const joinGameFn = callable('joinGame');
 const submitClaimFn = callable('submitClaim');
 const reportReachFn = callable('reportReach');
+const createTipCheckoutFn = callable('createTipCheckout');
 
 let currentGameId = null;
 let myUid = null;
@@ -151,6 +152,41 @@ function onGameSnapshot(game) {
   latestDraws = game.draws || [];
   scheduleRevealTimers(latestDraws);
   renderCard();
+  // 投げ銭: ホストが受け取り可能なら表示(勝敗に無関係・いつでも送れる)
+  $('tip-panel').hidden = !game.tipsEnabled;
+}
+
+// ---------- 投げ銭 ----------
+async function sendTip(amount) {
+  $('tip-error').textContent = '';
+  try {
+    const res = await createTipCheckoutFn({ gameId: currentGameId, amount, origin: location.origin });
+    if (res && res.url) {
+      location.href = res.url; // Stripe の決済画面へ
+    } else {
+      $('tip-error').textContent = '決済ページを開けませんでした。';
+    }
+  } catch (err) {
+    $('tip-error').textContent = err.message || String(err);
+  }
+}
+
+// 決済からの戻り(?tip=thanks|cancel)の案内
+function showTipBanner() {
+  const state = new URLSearchParams(location.search).get('tip');
+  if (!state) return;
+  const banner = $('tip-banner');
+  banner.hidden = false;
+  if (state === 'thanks') {
+    banner.className = 'checkout-banner ok';
+    banner.textContent = '🎁 応援ありがとうございます!ホストに届きました。';
+  } else {
+    banner.className = 'checkout-banner';
+    banner.textContent = '投げ銭はキャンセルされました。';
+  }
+  const url = new URL(location.href);
+  url.searchParams.delete('tip');
+  history.replaceState(null, '', url.toString());
 }
 
 // ---------- 当選条件の自動検知とクレーム送信 ----------
@@ -339,6 +375,11 @@ $('in-nickname').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') submitNickname();
 });
 
+$('tip-panel').addEventListener('click', (ev) => {
+  const btn = ev.target.closest('.tip-btn[data-amount]');
+  if (btn) sendTip(Number(btn.dataset.amount));
+});
+
 $('error-retry-btn').addEventListener('click', () => {
   localStorage.removeItem(LAST_GAME_KEY);
   const url = new URL(location.href);
@@ -360,6 +401,8 @@ $('error-retry-btn').addEventListener('click', () => {
   const user = await ensureSignedIn();
   myUid = user.uid;
   $('conn-status').hidden = true;
+
+  showTipBanner();
 
   const params = new URLSearchParams(location.search);
   const fromUrl = params.get('g');

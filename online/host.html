@@ -99,6 +99,7 @@
       </div>
       <div class="history" id="history"></div>
       <p class="count-note" id="count-note"></p>
+      <p class="count-note" id="tip-total-note" hidden></p>
       <p class="hint error-text" id="draw-error"></p>
       <div class="btn-row" style="margin-top:14px">
         <button class="btn-ghost" id="finish-btn">🏁 ゲームを終了して順位を確定</button>
@@ -116,6 +117,18 @@
       <h2 id="ranking-title">📊 暫定ランキング</h2>
       <p class="hint" id="ranking-note"></p>
       <div id="ranking-body"></div>
+    </section>
+
+    <!-- 投げ銭の受け取り設定(Stripe Connect・ホスト単位) -->
+    <section class="panel" id="tips-setup-panel">
+      <h2>🎁 投げ銭の受け取り設定</h2>
+      <p class="checkout-banner" id="connect-banner" hidden></p>
+      <p class="hint" id="connect-status-text">確認中…</p>
+      <div class="btn-row" style="margin-top:8px">
+        <button class="btn-primary" id="connect-btn" hidden>Stripeで受け取り口座を接続</button>
+      </div>
+      <p class="hint">接続すると、あなたが作成したゲームの参加者から「投げ銭(応援)」を受け取れます。運営手数料は50%、Stripe手数料は運営が負担します。入金・本人確認は Stripe が行います。</p>
+      <p class="hint error-text" id="connect-error"></p>
     </section>
 
     <section class="panel">

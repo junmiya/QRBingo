@@ -13,6 +13,8 @@ const CURRENT_KEY = 'qrbingo:online:host:current';
 
 const createGameFn = callable('createGame');
 const createCheckoutFn = callable('createCheckout');
+const createConnectAccountFn = callable('createConnectAccount');
+const refreshConnectStatusFn = callable('refreshConnectStatus');
 const startGameFn = callable('startGame');
 const drawNumberFn = callable('drawNumber');
 const finishGameFn = callable('finishGame');
@@ -121,6 +123,64 @@ function showCheckoutBanner() {
   history.replaceState(null, '', location.pathname + (q ? '?' + q : ''));
 }
 
+// ---------- 投げ銭の受け取り設定(Stripe Connect) ----------
+function renderConnect(acct) {
+  const text = $('connect-status-text');
+  const btn = $('connect-btn');
+  if (acct && acct.chargesEnabled) {
+    text.textContent = '✅ 受け取り可能です。作成したゲームで参加者から投げ銭を受け取れます。';
+    btn.hidden = true;
+  } else if (acct && acct.stripeAccountId) {
+    text.textContent = '⏳ 接続手続きが未完了です。続きから設定してください。';
+    btn.hidden = false;
+    btn.textContent = '接続手続きを続ける';
+  } else {
+    text.textContent = 'まだ接続されていません。投げ銭を受け取るには Stripe で口座を接続してください。';
+    btn.hidden = false;
+    btn.textContent = 'Stripeで受け取り口座を接続';
+  }
+}
+
+async function handleConnect() {
+  $('connect-error').textContent = '';
+  $('connect-btn').disabled = true;
+  try {
+    const res = await createConnectAccountFn({ origin: location.origin });
+    if (res && res.url) {
+      location.href = res.url; // Stripe のオンボーディングへ
+    } else {
+      $('connect-error').textContent = '接続ページを開けませんでした。';
+      $('connect-btn').disabled = false;
+    }
+  } catch (err) {
+    $('connect-error').textContent = err.message || String(err);
+    $('connect-btn').disabled = false;
+  }
+}
+
+// オンボーディングからの戻り(?connect=return|refresh)で最新状態を取得する。
+async function handleConnectReturn() {
+  const state = new URLSearchParams(location.search).get('connect');
+  if (!state) return;
+  const banner = $('connect-banner');
+  try {
+    const res = await refreshConnectStatusFn({});
+    banner.hidden = false;
+    if (res && res.chargesEnabled) {
+      banner.className = 'checkout-banner ok';
+      banner.textContent = '✅ 接続が完了しました。投げ銭を受け取れます。';
+    } else {
+      banner.className = 'checkout-banner';
+      banner.textContent = '接続はまだ完了していません。手続きを最後まで進めてください。';
+    }
+  } catch (e) {
+    /* 状態は購読で反映される */
+  }
+  const url = new URL(location.href);
+  url.searchParams.delete('connect');
+  history.replaceState(null, '', url.toString());
+}
+
 // ---------- 進行描画 ----------
 function renderBall(n) {
   const ball = $('current-ball');
@@ -174,6 +234,15 @@ function renderGame(game) {
       `勝利条件: ${s.winLines}ライン / 定員: ${s.capacity ?? '無制限'} / 景品数: ${s.prizeCount}` +
       (s.allowDuplicateCards ? ' / 同一カード許可' : '');
     return;
+  }
+
+  // 投げ銭の集計(受取ベース)。件数があれば進行画面に表示する。
+  const tipNote = $('tip-total-note');
+  if (game.tipsEnabled && (game.tipCount || 0) > 0) {
+    tipNote.hidden = false;
+    tipNote.textContent = `🎁 投げ銭: ${game.tipCount}件 / ホスト受取 ¥${(game.tipTotalNet || 0).toLocaleString()}`;
+  } else {
+    tipNote.hidden = true;
   }
 
   if (game.status === 'playing') {
@@ -417,6 +486,7 @@ $('ranking-body').addEventListener('click', handleRankingClick);
 $('reset-btn').addEventListener('click', handleReset);
 $('upgrade-toggle').addEventListener('click', toggleUpgrade);
 $('upgrade-plans').addEventListener('click', handleUpgrade);
+$('connect-btn').addEventListener('click', handleConnect);
 
 // ---------- 初期化 ----------
 (async () => {
@@ -433,9 +503,13 @@ $('upgrade-plans').addEventListener('click', handleUpgrade);
 
   // 決済からの戻り(?checkout=success|cancel)の案内
   showCheckoutBanner();
+  // 投げ銭 Connect オンボーディングからの戻り(?connect=...)
+  handleConnectReturn();
 
   // 課金プラン(人数上限)を購読して作成フォームに表示する
   watchDocPath(['entitlements', user.uid], renderPlan);
+  // 投げ銭の受け取り状態(Stripe Connect)を購読
+  watchDocPath(['hostAccounts', user.uid], renderConnect);
 
   const saved = QRB.loadJSON(CURRENT_KEY, null);
   if (saved && saved.gameId) {

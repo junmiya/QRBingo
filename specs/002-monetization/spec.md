@@ -69,6 +69,17 @@
   `stripeEvents/{sessionId}` で冪等化(二重配信を無視)。
 - **FR-M11**: Price ID → プランは `functions/src/lib/plans.js` で管理。price.metadata
   (maxPlayers/durationDays)があればそれを優先し、なければ mode 別マップで解決する。
+- **FR-M12**(Phase B): `createConnectAccount` はホストの Stripe Connect(Express)アカウントを
+  作成/取得し、オンボーディングURLを返す。`refreshConnectStatus` は charges_enabled を取得して
+  `hostAccounts/{uid}` に保存する。本人確認・入金は Stripe が担う(資金移動業に該当しない設計)。
+- **FR-M13**(Phase B): `createTipCheckout` は destination charge で投げ銭を作成する。
+  送金先=ゲームのホストの接続アカウント、`application_fee_amount`=運営手数料(可変・既定50%)。
+  Stripe 手数料は運営負担(destination charge の既定挙動)。金額は100〜50000円。
+- **FR-M14**(Phase B): 投げ銭の受付可否は `games/{id}.tipsEnabled`(作成時のホスト接続状態の
+  スナップショット)で表す。Webhook が `checkout.session.completed`(kind=tip)で
+  `games/{id}/tips/{sessionId}` に記録し、`tipTotalNet`/`tipCount` を集計する。
+- **FR-M15**(Phase B): 投げ銭は勝敗に無関係(応援)であり、賞品・当選と結び付けない
+  (賭博性の回避=legal 前提)。プレイヤーはビンゴ状況に関係なくいつでも送れる。
 
 ## 段階リリース
 
@@ -103,6 +114,34 @@
 | at | Timestamp | 処理時刻 |
 
 - read/write ともクライアント禁止(`allow read/write: if false`)。Webhook が Admin SDK で書く。
+
+### hostAccounts/{uid}(Connect 接続状態・投げ銭 Phase B)
+| フィールド | 型 | 説明 |
+|---|---|---|
+| stripeAccountId | string | Connect(Express)アカウントID |
+| chargesEnabled | boolean | 受取可能か(オンボーディング完了で true) |
+| payoutsEnabled | boolean | 入金可能か |
+| updatedAt | Timestamp | |
+
+- read: 本人のみ / write: Function(Connect・Webhook)のみ。PII は保持しない。
+
+### games/{id}/tips/{sessionId}(投げ銭明細・Phase B)
+| フィールド | 型 | 説明 |
+|---|---|---|
+| amount | number | 投げ銭額(円) |
+| fee | number | 運営手数料(円) |
+| net | number | ホスト受取(amount − fee) |
+| fromUid / hostUid | string | 送り主 / ホスト |
+| at | Timestamp | |
+
+- read: ホストのみ / write: Webhook のみ。games/{id} に `tipTotalNet`/`tipCount` を集計。
+
+### config/tips(運営設定・内部専用)
+| フィールド | 型 | 説明 |
+|---|---|---|
+| commissionRate | number | 運営手数料率(0〜0.9)。未設定なら既定 0.5 |
+
+- read/write ともクライアント禁止。運営がコンソールで調整(可変手数料)。
 
 ### Stripe 価格カタログ(plans.js)
 | planKey | 上限 | 期間 | 価格 | テスト Price ID |
