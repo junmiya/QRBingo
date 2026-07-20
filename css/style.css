@@ -91,6 +91,61 @@ header.app-header {
   font-weight: 700;
 }
 
+/* ---------- 課金(アップグレード) ---------- */
+.checkout-banner {
+  margin: 10px 0 0;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-size: .92rem;
+  line-height: 1.6;
+}
+.checkout-banner.ok {
+  background: #ecfdf3;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+.upgrade-box { margin-top: 12px; }
+.upgrade-toggle {
+  background: transparent;
+  border: 1px dashed var(--line);
+  color: var(--accent);
+  font-weight: 700;
+  width: 100%;
+  padding: 10px 12px;
+  text-align: left;
+}
+.upgrade-toggle:hover { background: var(--panel-2); }
+
+.plan-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin: 12px 0;
+}
+@media (max-width: 480px) {
+  .plan-grid { grid-template-columns: 1fr; }
+}
+.plan-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  text-align: left;
+}
+.plan-card:hover { border-color: var(--accent); background: var(--panel-2); }
+.plan-card:disabled { opacity: .6; cursor: default; }
+.plan-card b { font-size: 1rem; }
+.plan-card .plan-price { font-size: 1.25rem; font-weight: 800; color: var(--accent); }
+
 /* ---------- buttons ---------- */
 button {
   font: inherit;

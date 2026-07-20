@@ -87,15 +87,52 @@ STRIPE_SECRET_KEY=sk_live_xxxxx npm run setup-stripe
 これを読んで entitlement(人数上限・有効期限)を付与します(価格IDのハードコード不要)。
 1000人超のカスタムは Stripe ダッシュボードで個別価格を作り、同じ metadata を設定します。
 
-### 2.(次段)Checkout と Webhook のキー設定
+### 2. Checkout と Webhook のキー設定
 
-Checkout / Webhook Function 実装後に、キーを Firebase Secrets に投入します
-(**あなたの手元で実行**。私にキーを渡す必要はありません):
+`createCheckout`(Callable)と `stripeWebhook`(HTTP)を動かすため、キーを
+Firebase Secrets に投入します(**あなたの手元で実行**。私にキーを渡す必要はありません)。
+
+まずは**テストキー**で確認してください:
 
 ```bash
-firebase functions:secrets:set STRIPE_SECRET_KEY
-firebase functions:secrets:set STRIPE_WEBHOOK_SECRET
+firebase functions:secrets:set STRIPE_SECRET_KEY        # sk_test_xxx を貼る
+firebase functions:secrets:set STRIPE_WEBHOOK_SECRET    # 手順3で発行する whsec_xxx を貼る
+firebase deploy --only functions
 ```
+
+`sk_test_` を入れると自動でテスト価格(`PRICE_TO_PLAN_TEST` の Price ID)を使い、
+`sk_live_` を入れると本番価格を使います(モードはキーで自動判定)。
+
+### 3. Stripe Webhook の登録(署名シークレットの取得)
+
+支払い完了を受け取るため、Stripe に Webhook エンドポイントを登録します。
+
+1. `firebase deploy --only functions` の出力(または Firebase コンソール → Functions)で
+   **`stripeWebhook` の URL** を確認(例: `https://us-central1-qrbingo-5c613.cloudfunctions.net/stripeWebhook`)
+2. Stripe ダッシュボード(**テストモード**)→ 開発者 → Webhooks → **エンドポイントを追加**
+   - URL: 上記の `stripeWebhook` URL
+   - イベント: **`checkout.session.completed`** を選択
+3. 作成後に表示される **署名シークレット(`whsec_...`)** をコピーし、上記
+   `firebase functions:secrets:set STRIPE_WEBHOOK_SECRET` に設定 → 再デプロイ
+
+> ローカルで試す場合は Stripe CLI:
+> `stripe listen --forward-to localhost:5001/<project>/us-central1/stripeWebhook`
+> が発行する `whsec_...` を使います。
+
+### 4. 本番(Live)へ切り替え
+
+1. Stripe を**本番モード**にして、テストと同じ4商品(一括・JPY)を作成
+2. 本番の Price ID を `functions/src/lib/plans.js` の `PRICE_TO_PLAN_LIVE` に追記
+   (または `setup-stripe.js` を `sk_live_` で実行すると metadata 付き価格が作られ、
+   コード追記なしでも Webhook が metadata から解決します)
+3. `STRIPE_SECRET_KEY` を `sk_live_`、`STRIPE_WEBHOOK_SECRET` を本番 Webhook の
+   `whsec_` に差し替えて再デプロイ
+
+### 動作確認(テスト決済)
+
+ホスト画面 → 「⬆️ 人数を増やす」→ プランを選択 → Stripe のテストカード
+`4242 4242 4242 4242`(有効期限=未来・CVC=任意)で決済 → 戻ると数十秒で
+プラン上限が反映され、より大人数のゲームを作成できます。
 
 ---
 

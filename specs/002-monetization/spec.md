@@ -61,6 +61,14 @@
 - **FR-M6**(Phase B): 投げ銭は Stripe Connect。運営手数料は可変(既定50%)。
 - **FR-M7**(Phase B): ゲーム単位で「投げ銭手数料 ≥ プラン料金」なら参加費を相殺(無料化)。
 - **FR-M8**: PII(カード・メール)は Firestore に保存しない。
+- **FR-M9**: `createCheckout`(Callable)はプランキーを受け取り、mode(sk_test/sk_live)に
+  応じた Price ID で Stripe Checkout セッションを作成し URL を返す。都度プランのみ
+  `months`(1〜12)で数量=複数月を許可。リダイレクト先は許可リストで検証(オープンリダイレクト防止)。
+- **FR-M10**: `stripeWebhook`(HTTP)は署名を検証し、`checkout.session.completed`(paid)で
+  entitlement を付与する。付与期間 = `durationDays × quantity`。未失効なら現行期限から延長(積み増し)。
+  `stripeEvents/{sessionId}` で冪等化(二重配信を無視)。
+- **FR-M11**: Price ID → プランは `functions/src/lib/plans.js` で管理。price.metadata
+  (maxPlayers/durationDays)があればそれを優先し、なければ mode 別マップで解決する。
 
 ## 段階リリース
 
@@ -77,12 +85,34 @@
 |---|---|---|
 | maxPlayers | number | 1ゲームの最大参加人数(無料=20) |
 | validUntil | Timestamp\|null | 有効期限(null=無期限)。過去なら無料扱い |
-| plan | string | 表示用ラベル(free/onetime300/annual1000/custom 等) |
+| plan | string | 表示用ラベル(free/onetime_300/annual_1000/custom 等) |
 | source | string | free \| stripe \| admin |
+| lastPriceId | string | 直近購入の Stripe Price ID |
+| lastSessionId | string | 直近の Checkout セッションID |
 | updatedAt | Timestamp | |
 
 - read: 本人のみ / write: Functions(Webhook・管理)のみ。
 - 運営の手動調整は当面 Firebase コンソールで entitlements/{uid} を直接編集(rules を迂回)。
+
+### stripeEvents/{sessionId}(冪等記録・内部専用)
+| フィールド | 型 | 説明 |
+|---|---|---|
+| uid | string | 付与先ホスト |
+| priceId | string | 購入した Price ID |
+| quantity | number | 数量(複数月) |
+| at | Timestamp | 処理時刻 |
+
+- read/write ともクライアント禁止(`allow read/write: if false`)。Webhook が Admin SDK で書く。
+
+### Stripe 価格カタログ(plans.js)
+| planKey | 上限 | 期間 | 価格 | テスト Price ID |
+|---|---|---|---|---|
+| onetime_300 | 300 | 30日 | ¥1,000 | price_1Tv5Fm… |
+| onetime_1000 | 1000 | 30日 | ¥3,000 | price_1Tv5Ie… |
+| annual_300 | 300 | 365日 | ¥3,000 | price_1Tv5J6… |
+| annual_1000 | 1000 | 365日 | ¥10,000 | price_1Tv5JR… |
+
+- 本番 Price ID は `PRICE_TO_PLAN_LIVE` に追記(または metadata 付き価格で自動解決)。
 
 ## 検証
 

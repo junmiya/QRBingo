@@ -9,3 +9,5 @@ exports.finishGame = require('./finishGame').finishGame;
 exports.hideNickname = require('./hideNickname').hideNickname;
 exports.markWinnerHandled = require('./markWinnerHandled').markWinnerHandled;
 exports.reportReach = require('./reportReach').reportReach;
+exports.createCheckout = require('./createCheckout').createCheckout;
+exports.stripeWebhook = require('./stripeWebhook').stripeWebhook;

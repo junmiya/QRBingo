@@ -12,6 +12,7 @@ const $ = (id) => document.getElementById(id);
 const CURRENT_KEY = 'qrbingo:online:host:current';
 
 const createGameFn = callable('createGame');
+const createCheckoutFn = callable('createCheckout');
 const startGameFn = callable('startGame');
 const drawNumberFn = callable('drawNumber');
 const finishGameFn = callable('finishGame');
@@ -69,6 +70,55 @@ async function handleCreate() {
   } finally {
     $('create-btn').disabled = false;
   }
+}
+
+// ---------- アップグレード(課金) ----------
+function toggleUpgrade() {
+  const box = $('upgrade-plans');
+  const btn = $('upgrade-toggle');
+  const show = box.hidden;
+  box.hidden = !show;
+  btn.setAttribute('aria-expanded', show ? 'true' : 'false');
+}
+
+async function handleUpgrade(ev) {
+  const card = ev.target.closest('.plan-card[data-plan]');
+  if (!card) return;
+  const plan = card.dataset.plan;
+  $('upgrade-error').textContent = '';
+  card.disabled = true;
+  try {
+    const res = await createCheckoutFn({ plan, origin: location.origin });
+    if (res && res.url) {
+      location.href = res.url; // Stripe の決済画面へ
+    } else {
+      $('upgrade-error').textContent = '決済ページを開けませんでした。';
+      card.disabled = false;
+    }
+  } catch (err) {
+    $('upgrade-error').textContent = err.message || String(err);
+    card.disabled = false;
+  }
+}
+
+// 決済からの戻り(?checkout=success|cancel)を検知して案内を出す。
+function showCheckoutBanner() {
+  const params = new URLSearchParams(location.search);
+  const state = params.get('checkout');
+  if (!state) return;
+  const banner = $('checkout-banner');
+  banner.hidden = false;
+  if (state === 'success') {
+    banner.className = 'checkout-banner ok';
+    banner.textContent = '✅ ご購入ありがとうございます。プランへの反映まで数十秒かかる場合があります(自動更新されます)。';
+  } else {
+    banner.className = 'checkout-banner';
+    banner.textContent = '決済はキャンセルされました。';
+  }
+  // URL から checkout パラメータを消す(リロードで再表示しない)
+  params.delete('checkout');
+  const q = params.toString();
+  history.replaceState(null, '', location.pathname + (q ? '?' + q : ''));
 }
 
 // ---------- 進行描画 ----------
@@ -365,6 +415,8 @@ $('draw-btn').addEventListener('click', handleDraw);
 $('finish-btn').addEventListener('click', handleFinish);
 $('ranking-body').addEventListener('click', handleRankingClick);
 $('reset-btn').addEventListener('click', handleReset);
+$('upgrade-toggle').addEventListener('click', toggleUpgrade);
+$('upgrade-plans').addEventListener('click', handleUpgrade);
 
 // ---------- 初期化 ----------
 (async () => {
@@ -378,6 +430,9 @@ $('reset-btn').addEventListener('click', handleReset);
   }
   const user = await ensureSignedIn();
   $('conn-status').hidden = true;
+
+  // 決済からの戻り(?checkout=success|cancel)の案内
+  showCheckoutBanner();
 
   // 課金プラン(人数上限)を購読して作成フォームに表示する
   watchDocPath(['entitlements', user.uid], renderPlan);

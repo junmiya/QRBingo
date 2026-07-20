@@ -63,6 +63,12 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Stripe Webhook の冪等記録(処理済みセッションID)。内部専用・クライアント非公開。
+    match /stripeEvents/{sessionId} {
+      allow read: if false;
+      allow write: if false;
+    }
+
     // ビンゴ申告: 結果は submitClaim の戻り値で本人に返すため、
     // Firestore からの直接購読は許可しない(Functions 内部専用)
     match /claims/{claimId} {

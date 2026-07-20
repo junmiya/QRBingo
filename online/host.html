@@ -23,6 +23,34 @@
 
       <p class="plan-badge" id="plan-badge" hidden></p>
 
+      <p class="checkout-banner" id="checkout-banner" hidden></p>
+
+      <!-- アップグレード(主催者課金) -->
+      <div class="upgrade-box">
+        <button class="upgrade-toggle" id="upgrade-toggle" type="button" aria-expanded="false">
+          ⬆️ 人数を増やす(アップグレード)
+        </button>
+        <div id="upgrade-plans" hidden>
+          <p class="hint">購入すると1ゲームの参加上限が上がります。決済は Stripe(安全な外部決済)で行われ、カード情報はこのサイトには保存されません。</p>
+          <div class="plan-grid">
+            <button class="plan-card" data-plan="onetime_300" type="button">
+              <b>都度 300人</b><span class="plan-price">¥1,000</span><span class="hint">30日間</span>
+            </button>
+            <button class="plan-card" data-plan="onetime_1000" type="button">
+              <b>都度 1000人</b><span class="plan-price">¥3,000</span><span class="hint">30日間</span>
+            </button>
+            <button class="plan-card" data-plan="annual_300" type="button">
+              <b>年 300人</b><span class="plan-price">¥3,000</span><span class="hint">365日間</span>
+            </button>
+            <button class="plan-card" data-plan="annual_1000" type="button">
+              <b>年 1000人</b><span class="plan-price">¥10,000</span><span class="hint">365日間</span>
+            </button>
+          </div>
+          <p class="hint">1000人を超えるプランは個別対応します。お問い合わせください。</p>
+          <p class="hint error-text" id="upgrade-error"></p>
+        </div>
+      </div>
+
       <div style="margin-top:14px">
         <label class="hint" for="in-winlines">勝利条件(ライン数)</label>
         <input type="text" id="in-winlines" value="1" inputmode="numeric" style="text-transform:none">
