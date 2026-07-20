@@ -16,6 +16,18 @@
   <main>
     <p id="conn-status" class="hint" style="text-align:center">接続中…</p>
 
+    <!-- アカウント(課金・投げ銭受け取りにはログインが必要) -->
+    <section class="panel" id="account-panel" hidden>
+      <h2>👤 アカウント</h2>
+      <p class="hint" id="account-status">確認中…</p>
+      <div class="btn-row" style="margin-top:8px">
+        <button class="btn-primary" id="login-btn" hidden>Googleでログイン</button>
+        <button class="btn-ghost" id="logout-btn" hidden>ログアウト</button>
+      </div>
+      <p class="hint">参加者はログイン不要です。ログインが必要なのは<strong>プラン購入・投げ銭の受け取りをする主催者</strong>だけ。ログインするとプランや設定が端末をまたいで引き継がれ、買ったプランを失いません。</p>
+      <p class="hint error-text" id="account-error"></p>
+    </section>
+
     <!-- ゲーム作成フォーム -->
     <section class="panel" id="create-panel" hidden>
       <h2>🎪 オンラインゲームを作成</h2>

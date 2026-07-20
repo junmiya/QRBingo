@@ -9,6 +9,10 @@ import {
   connectAuthEmulator,
   signInAnonymously,
   onAuthStateChanged,
+  GoogleAuthProvider,
+  linkWithPopup,
+  signInWithPopup,
+  signOut,
 } from '../../lib/firebase/firebase-auth.js';
 import {
   getFirestore,
@@ -82,6 +86,37 @@ function ensureSignedIn() {
   return signInPromise;
 }
 
+// 認証状態の変化を購読する(匿名⇄Google の切替を検知)。
+function onUser(cb) {
+  return onAuthStateChanged(auth, (u) => cb(u));
+}
+
+// 匿名アカウントを Google に昇格(リンク)する。UID は維持され、既存の
+// entitlement 等が引き継がれる。そのGoogleが既に別UIDに存在する場合は
+// そちらでサインインする(その場合UIDは変わる)。
+async function linkGoogle() {
+  const provider = new GoogleAuthProvider();
+  const user = auth.currentUser;
+  try {
+    if (user && user.isAnonymous) {
+      const cred = await linkWithPopup(user, provider);
+      return cred.user;
+    }
+    const cred = await signInWithPopup(auth, provider);
+    return cred.user;
+  } catch (err) {
+    if (err && err.code === 'auth/credential-already-in-use') {
+      const cred = await signInWithPopup(auth, provider);
+      return cred.user;
+    }
+    throw err;
+  }
+}
+
+async function signOutHost() {
+  await signOut(auth);
+}
+
 function callable(name) {
   const fn = httpsCallable(functions, name);
   return async (data) => {
@@ -142,6 +177,9 @@ export {
   functions,
   ONLINE_AVAILABLE,
   ensureSignedIn,
+  onUser,
+  linkGoogle,
+  signOutHost,
   callable,
   watchGame,
   readGame,

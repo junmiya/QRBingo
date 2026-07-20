@@ -61,6 +61,10 @@
 - **FR-M6**(Phase B): 投げ銭は Stripe Connect。運営手数料は可変(既定50%)。
 - **FR-M7**(Phase B): ゲーム単位で「投げ銭手数料 ≥ プラン料金」なら参加費を相殺(無料化)。
 - **FR-M8**: PII(カード・メール)は Firestore に保存しない。
+- **FR-M8b**: 課金(プラン購入)・投げ銭の受け取り接続は**ホストのログイン必須**。
+  匿名UIDのままでは端末を変えると entitlement を失うため、購入/接続ボタンは匿名時に
+  ブロックし「Googleでログイン」へ誘導する。ログインは匿名アカウントの Google リンク
+  (`linkWithPopup`)で行い、**UIDを維持**して既存の entitlement を引き継ぐ。参加者は匿名のまま。
 - **FR-M9**: `createCheckout`(Callable)はプランキーを受け取り、mode(sk_test/sk_live)に
   応じた Price ID で Stripe Checkout セッションを作成し URL を返す。都度プランのみ
   `months`(1〜12)で数量=複数月を許可。リダイレクト先は許可リストで検証(オープンリダイレクト防止)。

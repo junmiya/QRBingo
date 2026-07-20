@@ -2,6 +2,9 @@
 import {
   ONLINE_AVAILABLE,
   ensureSignedIn,
+  onUser,
+  linkGoogle,
+  signOutHost,
   callable,
   watchGame,
   readGame,
@@ -30,6 +33,9 @@ const ballColor = (n) => BALL_COLORS[Math.floor((n - 1) / 15)];
 
 let gameId = null;
 let myUid = null;
+let isAnon = true; // 課金・投げ銭受け取りはログイン必須(匿名では不可)
+let unwatchPlan = null;
+let unwatchConnect = null;
 let unwatch = null;
 let unwatchLeaderboard = null;
 let unwatchResults = null;
@@ -99,6 +105,11 @@ async function handleUpgrade(ev) {
   if (!card) return;
   const plan = card.dataset.plan;
   $('upgrade-error').textContent = '';
+  if (isAnon) {
+    $('upgrade-error').textContent = '購入するには、上部「👤 アカウント」から Google でログインしてください（買ったプランを失わないため必須です）。';
+    $('account-panel').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
   card.disabled = true;
   try {
     const res = await createCheckoutFn({ plan, origin: location.origin });
@@ -154,6 +165,11 @@ function renderConnect(acct) {
 
 async function handleConnect() {
   $('connect-error').textContent = '';
+  if (isAnon) {
+    $('connect-error').textContent = '投げ銭を受け取るには、上部「👤 アカウント」から Google でログインしてください（受取設定を端末間で保持するため必須です）。';
+    $('account-panel').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
   $('connect-btn').disabled = true;
   try {
     const res = await createConnectAccountFn({ origin: location.origin });
@@ -628,6 +644,8 @@ $('resume-btn').addEventListener('click', handleResume);
 $('upgrade-toggle').addEventListener('click', toggleUpgrade);
 $('upgrade-plans').addEventListener('click', handleUpgrade);
 $('connect-btn').addEventListener('click', handleConnect);
+$('login-btn').addEventListener('click', handleLogin);
+$('logout-btn').addEventListener('click', handleLogout);
 $('chat-toggle-btn').addEventListener('click', handleChatToggle);
 $('countdown-start').addEventListener('click', handleCountdownStart);
 $('countdown-stop').addEventListener('click', handleCountdownStop);
@@ -651,10 +669,17 @@ $('countdown-stop').addEventListener('click', handleCountdownStop);
   // 投げ銭 Connect オンボーディングからの戻り(?connect=...)
   handleConnectReturn();
 
-  // 課金プラン(人数上限)を購読して作成フォームに表示する
-  watchDocPath(['entitlements', user.uid], renderPlan);
-  // 投げ銭の受け取り状態(Stripe Connect)を購読
-  watchDocPath(['hostAccounts', user.uid], renderConnect);
+  // 認証状態(匿名/Google)を購読。UIDが変わったらプラン・接続状態を購読し直す。
+  let lastUid = null;
+  onUser((u) => {
+    if (!u) return; // ログアウト直後(reload で匿名に入り直す)
+    myUid = u.uid;
+    renderAuth(u);
+    if (u.uid !== lastUid) {
+      lastUid = u.uid;
+      resubscribeHostDocs(u.uid);
+    }
+  });
 
   const saved = QRB.loadJSON(CURRENT_KEY, null);
   if (saved && saved.gameId) {
@@ -664,6 +689,63 @@ $('countdown-stop').addEventListener('click', handleCountdownStop);
     showPanel('create-panel');
   }
 })();
+
+// ---------- アカウント(ログイン) ----------
+function renderAuth(user) {
+  isAnon = !user || user.isAnonymous;
+  $('account-panel').hidden = false;
+  const status = $('account-status');
+  const loginBtn = $('login-btn');
+  const logoutBtn = $('logout-btn');
+  if (isAnon) {
+    status.innerHTML =
+      '未ログインです。<strong>プラン購入・投げ銭の受け取りにはログインが必要</strong>です。';
+    loginBtn.hidden = false;
+    logoutBtn.hidden = true;
+  } else {
+    const who = user.email || user.displayName || 'ログイン済み';
+    status.innerHTML = `✅ ログイン中: <strong>${esc(who)}</strong>(プランは端末をまたいで引き継がれます)`;
+    loginBtn.hidden = true;
+    logoutBtn.hidden = false;
+  }
+}
+
+async function handleLogin() {
+  $('account-error').textContent = '';
+  $('login-btn').disabled = true;
+  try {
+    await linkGoogle();
+    // 認証状態は onUser 購読で反映される
+  } catch (err) {
+    const code = String((err && err.code) || '');
+    if (code.includes('popup-closed') || code.includes('cancelled')) {
+      $('account-error').textContent = 'ログインがキャンセルされました。';
+    } else {
+      $('account-error').textContent = err.message || String(err);
+    }
+  } finally {
+    $('login-btn').disabled = false;
+  }
+}
+
+async function handleLogout() {
+  if (!confirm('ログアウトしますか?\n(このゲーム表示はリセットされ、匿名に戻ります)')) return;
+  try {
+    localStorage.removeItem(CURRENT_KEY);
+    await signOutHost();
+    location.reload(); // 匿名で入り直す
+  } catch (err) {
+    $('account-error').textContent = err.message || String(err);
+  }
+}
+
+// ログインUID変更時に、そのUIDのプラン・投げ銭接続状態を購読し直す。
+function resubscribeHostDocs(uid) {
+  if (unwatchPlan) unwatchPlan();
+  unwatchPlan = watchDocPath(['entitlements', uid], renderPlan);
+  if (unwatchConnect) unwatchConnect();
+  unwatchConnect = watchDocPath(['hostAccounts', uid], renderConnect);
+}
 
 // ---------- 課金プラン表示 ----------
 const FREE_MAX_PLAYERS = 20;
