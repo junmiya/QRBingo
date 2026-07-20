@@ -18,6 +18,10 @@
   - データ: `games/{id}/chat/{autoId}` = `{ uid, nickname, text, isHost, createdAt }`。
     read=参加者全員 / write=Function のみ。ホストは「主催者」名義で送信。
   - 切替: `setChatEnabled`(ホストのみ)→ `settings.chatEnabled`。
+- **FR-L1b**: 投げ銭(スパチャ)着金も全員にアナウンス(スーパーチャット風)。
+  stripeWebhook が feed に `{ type:'tip', nickname, amount }` を追記し、既存の feed 購読で
+  全員のトーストに表示。金色・大きめ・長め(5.5秒)で別格に見せる。頻度が低いため制限不要。
+  ニックネームは送り主のカードから取得(取得不可なら「応援」)。
 - **FR-L3**: 開始までのカウントダウン表示。ホストが **ON/OFF** でき、秒数を指定して開始できる。
   - `setCountdown({seconds})`(ホストのみ): seconds>0 で `countdownTarget = now + seconds`、
     `settings.countdownEnabled=true`。seconds=0 で解除。範囲 0〜3600秒。

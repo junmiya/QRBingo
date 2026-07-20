@@ -12,6 +12,7 @@ const { defineSecret } = require('firebase-functions/params');
 const { Timestamp, FieldValue } = require('firebase-admin/firestore');
 const { db } = require('./admin');
 const { planFromPrice } = require('./lib/plans');
+const { appendFeed } = require('./lib/feed');
 
 const STRIPE_SECRET_KEY = defineSecret('STRIPE_SECRET_KEY');
 const STRIPE_WEBHOOK_SECRET = defineSecret('STRIPE_WEBHOOK_SECRET');
@@ -78,9 +79,11 @@ async function handleTip(session) {
   const tipRef = db.doc(`games/${gameId}/tips/${session.id}`);
   const gameRef = db.doc(`games/${gameId}`);
 
+  let firstTime = false;
   await db.runTransaction(async (tx) => {
     const done = await tx.get(procRef);
     if (done.exists) return; // 冪等
+    firstTime = true;
     const now = Date.now();
     tx.set(tipRef, {
       amount,
@@ -98,6 +101,18 @@ async function handleTip(session) {
     );
     tx.set(procRef, { kind: 'tip', gameId, amount, fee, sessionId: session.id, at: Timestamp.fromMillis(now) });
   });
+
+  // 全員に「応援」をアナウンス(スーパーチャット風・二重配信時は出さない)
+  if (firstTime) {
+    let nickname = '応援';
+    try {
+      const cardSnap = md.fromUid ? await db.doc(`cards/${gameId}_${md.fromUid}`).get() : null;
+      if (cardSnap && cardSnap.exists && cardSnap.data().nickname) nickname = cardSnap.data().nickname;
+    } catch (e) {
+      /* ニックネーム取得失敗時は既定名で通知 */
+    }
+    await appendFeed(gameId, { type: 'tip', nickname, amount });
+  }
   return 'ok';
 }
 

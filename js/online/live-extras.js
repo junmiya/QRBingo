@@ -24,16 +24,24 @@ function toastContainer() {
 
 function showToast(ev) {
   const el = document.createElement('div');
-  const isBingo = ev.type === 'bingo';
-  el.className = 'announce-toast ' + (isBingo ? 'bingo' : 'reach');
+  el.className = 'announce-toast ' + (ev.type || 'reach');
   const name = esc(ev.nickname || '(不明)');
-  el.textContent = isBingo ? `🎉 ${name} さんが BINGO!` : `🔥 ${name} さんがリーチ!`;
+  let dwell = 3800;
+  if (ev.type === 'bingo') {
+    el.textContent = `🎉 ${name} さんが BINGO!`;
+  } else if (ev.type === 'tip') {
+    const amount = Number(ev.amount || 0).toLocaleString();
+    el.textContent = `💰 ${name} さんが ¥${amount} 応援!`;
+    dwell = 5500; // スパチャは別格・長めに表示
+  } else {
+    el.textContent = `🔥 ${name} さんがリーチ!`;
+  }
   toastContainer().appendChild(el);
   setTimeout(() => el.classList.add('show'), 20);
   setTimeout(() => {
     el.classList.remove('show');
     setTimeout(() => el.remove(), 400);
-  }, 3800);
+  }, dwell);
 }
 
 // feed を購読し、購読開始後に追加された分だけトーストする(履歴は出さない)。

@@ -14,10 +14,11 @@ const { db } = require('../admin');
 async function appendFeed(gameId, event) {
   try {
     await db.collection(`games/${gameId}/feed`).add({
-      type: event.type, // 'reach' | 'bingo'
+      type: event.type, // 'reach' | 'bingo' | 'tip'
       nickname: event.nickname || '',
       ballIndex: event.ballIndex || 0,
       reachLines: event.reachLines || 0,
+      amount: event.amount || 0, // 投げ銭額(tip のときのみ)
       createdAt: FieldValue.serverTimestamp(),
     });
   } catch (e) {

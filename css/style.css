@@ -196,6 +196,12 @@ header.app-header {
 .announce-toast.show { opacity: 1; transform: translateY(0); }
 .announce-toast.reach { background: var(--col-g); }
 .announce-toast.bingo { background: var(--col-o); }
+.announce-toast.tip {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  font-size: 1.2rem;
+  padding: 13px 22px;
+  box-shadow: 0 6px 20px rgba(217, 119, 6, .4);
+}
 
 /* ---------- 開始カウントダウン ---------- */
 .countdown-box { text-align: center; }
