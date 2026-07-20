@@ -5,6 +5,7 @@ const { FieldValue } = require('firebase-admin/firestore');
 const { db } = require('./admin');
 const { generateCard, evaluateCard, findAchievedBallIndex } = require('./lib/bingo');
 const { rebuildLeaderboardThrottled } = require('./lib/leaderboardService');
+const { appendFeed } = require('./lib/feed');
 
 // 公開済み(revealAt <= now)の抽選のみを ballIndex 昇順に並べて返す。
 // 公開ディレイ中の番号は判定に使わない(先読みビンゴを防ぐ)。
@@ -84,6 +85,13 @@ exports.submitClaim = onCall(async (request) => {
 
   // ビンゴ成立者はホストのリーチリストから外す(存在しなくても no-op)
   await db.doc(`games/${gameId}/reaches/${uid}`).delete();
+
+  // 全員にビンゴをアナウンス(演出・順位には無関係)
+  await appendFeed(gameId, {
+    type: 'bingo',
+    nickname: card.nickname,
+    ballIndex: achievedBallIndex,
+  });
 
   // ランキング再構築はスロットリング(大人数時のコスト削減)。
   // プレイヤーの順位は leaderboard 購読で数秒以内に反映されるため、

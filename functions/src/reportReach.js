@@ -4,6 +4,7 @@ const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { FieldValue } = require('firebase-admin/firestore');
 const { db } = require('./admin');
 const { generateCard, evaluateCard } = require('./lib/bingo');
+const { appendFeed } = require('./lib/feed');
 
 // プレイヤーのリーチ状態をホスト向けリストに登録する(演出用・US-6)。
 // submitClaim と同様にサーバーがシードから再計算するため、
@@ -49,6 +50,9 @@ exports.reportReach = onCall(async (request) => {
     return { status: bingoLines.length >= winLines ? 'bingo' : 'none' };
   }
 
+  // 初回リーチのみ全員にアナウンス(既存ドキュメントがあれば通知済み)。
+  const alreadyReached = (await reachRef.get()).exists;
+
   await reachRef.set({
     uid,
     nickname: card.nickname,
@@ -57,5 +61,14 @@ exports.reportReach = onCall(async (request) => {
     ballIndex: currentBallIndex,
     updatedAt: FieldValue.serverTimestamp(),
   });
+
+  if (!alreadyReached) {
+    await appendFeed(gameId, {
+      type: 'reach',
+      nickname: card.nickname,
+      reachLines: reachCount,
+      ballIndex: currentBallIndex,
+    });
+  }
   return { status: 'reach', reachLines: reachCount };
 });

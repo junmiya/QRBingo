@@ -48,6 +48,20 @@ service cloud.firestore {
         allow write: if false;
       }
 
+      // リーチ/ビンゴの全員向けアナウンス。参加者全員が購読(演出用)。
+      // 書き込みは reportReach / submitChat Function がサーバー検証の上で行う。
+      match /feed/{eventId} {
+        allow read: if signedIn();
+        allow write: if false;
+      }
+
+      // チャット。ホストが有効化したゲームで参加者全員が購読・送信できる。
+      // 送信は sendChat Function 経由のみ(内容検証・なりすまし防止)。
+      match /chat/{msgId} {
+        allow read: if signedIn();
+        allow write: if false;
+      }
+
       // 重複カード排除用のロック。クライアントに公開する情報を持たない
       match /gridHashes/{hash} {
         allow read: if false;

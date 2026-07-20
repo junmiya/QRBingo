@@ -50,6 +50,12 @@
     <div id="game-area" hidden>
       <div class="status-banner" id="status-banner">番号が呼ばれると自動でマークされます</div>
 
+      <!-- 開始までのカウントダウン(ホストが有効化した場合のみ) -->
+      <section class="panel countdown-box" id="countdown-box" hidden>
+        <p class="hint" style="margin:0">⏳ 開始まで</p>
+        <p class="countdown-value" id="countdown-value">--:--</p>
+      </section>
+
       <!-- 当選/順位パネル(ビンゴ成立後に表示) -->
       <section class="panel" id="rank-panel" hidden>
         <h2>🏆 あなたの順位</h2>
@@ -67,6 +73,17 @@
           <table class="bingo readonly" id="card"></table>
         </div>
         <p class="card-id-label" id="nickname-label"></p>
+      </section>
+
+      <!-- チャット(ホストが有効化した場合のみ表示) -->
+      <section class="panel" id="chat-panel" hidden>
+        <h2>💬 チャット</h2>
+        <div class="chat-list" id="chat-list"></div>
+        <div class="chat-input-row">
+          <input type="text" id="chat-input" placeholder="メッセージを入力" maxlength="200" autocomplete="off" style="text-transform:none">
+          <button class="btn-primary" id="chat-send">送信</button>
+        </div>
+        <p class="hint error-text" id="chat-error"></p>
       </section>
 
       <!-- 投げ銭(ホストが受け取り設定をしている場合のみ表示) -->

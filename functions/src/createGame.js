@@ -12,6 +12,8 @@ const DEFAULTS = {
   capacity: null,
   allowDuplicateCards: false,
   prizeCount: 3,
+  chatEnabled: false,
+  countdownEnabled: false,
 };
 
 const MAX_GAME_ID_ATTEMPTS = 5;
@@ -61,6 +63,8 @@ exports.createGame = onCall(async (request) => {
   if (!prizeCountR.ok) throw new HttpsError('invalid-argument', 'prizeCount は 1〜100 の整数で指定してください');
 
   const allowDuplicateCards = Boolean(input.allowDuplicateCards);
+  const chatEnabled = Boolean(input.chatEnabled);
+  const countdownEnabled = Boolean(input.countdownEnabled);
 
   // 投げ銭(Phase B): ホストが Connect 接続済み(受取可能)なら、このゲームで投げ銭を
   // 受け付ける。プレイヤー画面はこのフラグで投げ銭ボタンの表示可否を判断する。
@@ -88,6 +92,8 @@ exports.createGame = onCall(async (request) => {
           capacity,
           allowDuplicateCards,
           prizeCount: prizeCountR.value,
+          chatEnabled,
+          countdownEnabled,
         },
         draws: [],
         participantCount: 0,
@@ -95,6 +101,7 @@ exports.createGame = onCall(async (request) => {
         tipsEnabled,
         tipTotalNet: 0,
         tipCount: 0,
+        countdownTarget: null,
         createdAt: FieldValue.serverTimestamp(),
         startedAt: null,
         finishedAt: null,

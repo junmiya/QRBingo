@@ -16,6 +16,9 @@ import {
   doc,
   collection,
   onSnapshot,
+  query,
+  orderBy,
+  limit,
 } from '../../lib/firebase/firebase-firestore.js';
 import {
   getFunctions,
@@ -112,6 +115,19 @@ function watchCollectionPath(segments, onChange, onError) {
   );
 }
 
+// 並び替え・件数制限つきのコレクション購読。docs は id 付きで返す。
+// 例: watchOrdered(['games', gid, 'chat'], 'createdAt', 'asc', 100, onDocs)
+function watchOrdered(segments, field, direction, limitN, onChange, onError) {
+  const q = query(collection(db, ...segments), orderBy(field, direction), limit(limitN));
+  return onSnapshot(
+    q,
+    (snap) => {
+      onChange(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    },
+    onError || (() => {})
+  );
+}
+
 export {
   app,
   auth,
@@ -123,4 +139,5 @@ export {
   watchGame,
   watchDocPath,
   watchCollectionPath,
+  watchOrdered,
 };

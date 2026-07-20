@@ -7,6 +7,7 @@ import {
   watchDocPath,
   watchCollectionPath,
 } from './firebase-init.js';
+import { watchAnnouncements, initChat, fmtCountdown } from './live-extras.js';
 
 const $ = (id) => document.getElementById(id);
 const CURRENT_KEY = 'qrbingo:online:host:current';
@@ -15,6 +16,8 @@ const createGameFn = callable('createGame');
 const createCheckoutFn = callable('createCheckout');
 const createConnectAccountFn = callable('createConnectAccount');
 const refreshConnectStatusFn = callable('refreshConnectStatus');
+const setChatEnabledFn = callable('setChatEnabled');
+const setCountdownFn = callable('setCountdown');
 const startGameFn = callable('startGame');
 const drawNumberFn = callable('drawNumber');
 const finishGameFn = callable('finishGame');
@@ -35,6 +38,10 @@ let gameStatus = null;
 let lastRenderedBallIndex = 0;
 let latestDrawsCount = 0;
 let latestReaches = [];
+let announceStarted = false; // アナウンス購読は1回だけ
+let chatUnwatch = null; // チャット購読(有効化時に開始)
+let hostCountdownTimer = null; // ホスト側カウントダウン表示の更新
+let chatCurrentlyEnabled = false;
 
 function esc(s) {
   return String(s).replace(/[&<>"']/g, (c) =>
@@ -63,6 +70,8 @@ async function handleCreate() {
       capacity: parseOptionalInt($('in-capacity').value) ?? null,
       prizeCount: parseOptionalInt($('in-prizes').value),
       allowDuplicateCards: $('in-allowdup').checked,
+      chatEnabled: $('in-chat').checked,
+      countdownEnabled: $('in-countdown').checked,
     });
     gameId = res.gameId;
     QRB.saveJSON(CURRENT_KEY, { gameId });
@@ -181,6 +190,85 @@ async function handleConnectReturn() {
   history.replaceState(null, '', url.toString());
 }
 
+// ---------- ライブ機能(チャット切替・カウントダウン) ----------
+function updateLive(game) {
+  const active = game.status === 'lobby' || game.status === 'playing';
+  $('live-panel').hidden = !active;
+
+  const chatEnabled = !!(game.settings && game.settings.chatEnabled);
+  chatCurrentlyEnabled = chatEnabled;
+  $('chat-toggle-btn').textContent = 'チャット: ' + (chatEnabled ? 'ON(タップでOFF)' : 'OFF(タップでON)');
+
+  // チャットパネル(有効化されていれば表示・購読開始)
+  const showChat = chatEnabled && game.status !== 'finished';
+  $('chat-panel').hidden = !showChat;
+  if (showChat && !chatUnwatch) {
+    chatUnwatch = initChat(gameId, {
+      listEl: $('chat-list'),
+      inputEl: $('chat-input'),
+      sendBtn: $('chat-send'),
+      errEl: $('chat-error'),
+    });
+  }
+
+  // カウントダウン操作(作成時に有効化した場合のみ・ロビー中が主用途)
+  const cdEnabled = !!(game.settings && game.settings.countdownEnabled);
+  $('countdown-controls').hidden = !cdEnabled;
+  const targetMs =
+    game.countdownTarget && game.countdownTarget.toMillis ? game.countdownTarget.toMillis() : null;
+  if (cdEnabled && targetMs && game.status === 'lobby') {
+    const tick = () => {
+      const remain = targetMs - Date.now();
+      $('countdown-live').textContent =
+        remain > 0 ? `開始まで ${fmtCountdown(remain)}(参加者にも表示中)` : 'まもなく開始!(「ゲームを開始」を押してください)';
+    };
+    tick();
+    if (hostCountdownTimer) clearInterval(hostCountdownTimer);
+    hostCountdownTimer = setInterval(tick, 250);
+  } else {
+    $('countdown-live').textContent = '';
+    if (hostCountdownTimer) {
+      clearInterval(hostCountdownTimer);
+      hostCountdownTimer = null;
+    }
+  }
+}
+
+async function handleChatToggle() {
+  $('live-error').textContent = '';
+  $('chat-toggle-btn').disabled = true;
+  try {
+    await setChatEnabledFn({ gameId, enabled: !chatCurrentlyEnabled });
+  } catch (err) {
+    $('live-error').textContent = err.message || String(err);
+  } finally {
+    $('chat-toggle-btn').disabled = false;
+  }
+}
+
+async function handleCountdownStart() {
+  $('live-error').textContent = '';
+  const seconds = parseInt($('countdown-sec').value, 10);
+  if (!Number.isInteger(seconds) || seconds < 1 || seconds > 3600) {
+    $('live-error').textContent = '秒は 1〜3600 で入力してください';
+    return;
+  }
+  try {
+    await setCountdownFn({ gameId, seconds });
+  } catch (err) {
+    $('live-error').textContent = err.message || String(err);
+  }
+}
+
+async function handleCountdownStop() {
+  $('live-error').textContent = '';
+  try {
+    await setCountdownFn({ gameId, seconds: 0 });
+  } catch (err) {
+    $('live-error').textContent = err.message || String(err);
+  }
+}
+
 // ---------- 進行描画 ----------
 function renderBall(n) {
   const ball = $('current-ball');
@@ -216,6 +304,7 @@ function renderHistory(draws) {
 function renderGame(game) {
   if (!game) return;
   gameStatus = game.status;
+  updateLive(game);
 
   $('game-code').textContent = gameId;
   $('playing-game-code').textContent = gameId;
@@ -279,6 +368,11 @@ function attachWatcher() {
   // リーチ状況(演出用・進行中のみ表示)を購読
   if (unwatchReaches) unwatchReaches();
   unwatchReaches = watchCollectionPath(['games', gameId, 'reaches'], onReaches);
+  // リーチ/ビンゴのアナウンスをホスト画面にも流す(1回だけ)
+  if (!announceStarted) {
+    announceStarted = true;
+    watchAnnouncements(gameId);
+  }
 }
 
 // ---------- リーチ状況 ----------
@@ -466,6 +560,9 @@ function handleReset() {
   if (unwatchLeaderboard) unwatchLeaderboard();
   if (unwatchResults) unwatchResults();
   if (unwatchReaches) unwatchReaches();
+  if (chatUnwatch) { chatUnwatch(); chatUnwatch = null; }
+  if (hostCountdownTimer) { clearInterval(hostCountdownTimer); hostCountdownTimer = null; }
+  announceStarted = false;
   gameId = null;
   gameStatus = null;
   lastRenderedBallIndex = 0;
@@ -474,6 +571,8 @@ function handleReset() {
   $('create-error').textContent = '';
   $('ranking-panel').hidden = true;
   $('reach-panel').hidden = true;
+  $('live-panel').hidden = true;
+  $('chat-panel').hidden = true;
   showPanel('create-panel');
 }
 
@@ -487,6 +586,9 @@ $('reset-btn').addEventListener('click', handleReset);
 $('upgrade-toggle').addEventListener('click', toggleUpgrade);
 $('upgrade-plans').addEventListener('click', handleUpgrade);
 $('connect-btn').addEventListener('click', handleConnect);
+$('chat-toggle-btn').addEventListener('click', handleChatToggle);
+$('countdown-start').addEventListener('click', handleCountdownStart);
+$('countdown-stop').addEventListener('click', handleCountdownStop);
 
 // ---------- 初期化 ----------
 (async () => {

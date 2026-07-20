@@ -8,6 +8,7 @@ import {
   watchGame,
   watchDocPath,
 } from './firebase-init.js';
+import { watchAnnouncements, initChat, fmtCountdown } from './live-extras.js';
 
 const $ = (id) => document.getElementById(id);
 const LAST_GAME_KEY = 'qrbingo:online:player:last';
@@ -34,6 +35,9 @@ let isWinnerFinal = false; // 当選ドキュメント受信済み(順位表示�
 let lastReachKey = null; // リーチ報告の重複送信防止(状態が変わった時だけ送る)
 let reportingReach = false;
 let celebrated = false; // ビンゴ演出は初回のみ
+let announceStarted = false; // リーチ/ビンゴのアナウンス購読は1回だけ
+let chatUnwatch = null; // チャット購読(有効化時に開始)
+let countdownTimer = null; // カウントダウンの更新タイマー
 
 function showOnly(id) {
   for (const s of SECTIONS) $(s).hidden = s !== id;
@@ -113,6 +117,50 @@ function onJoined(res) {
     ['games', currentGameId, 'public', 'leaderboard'],
     onLeaderboardSnapshot
   );
+
+  // リーチ/ビンゴのアナウンスを全員向けに購読(1回だけ)
+  if (!announceStarted) {
+    announceStarted = true;
+    watchAnnouncements(currentGameId);
+  }
+}
+
+// ---------- チャット / カウントダウン ----------
+function updateChat(game) {
+  const enabled = !!(game.settings && game.settings.chatEnabled) && gameStatus !== 'finished';
+  $('chat-panel').hidden = !enabled;
+  if (enabled && !chatUnwatch) {
+    chatUnwatch = initChat(currentGameId, {
+      listEl: $('chat-list'),
+      inputEl: $('chat-input'),
+      sendBtn: $('chat-send'),
+      errEl: $('chat-error'),
+    });
+  }
+}
+
+function updateCountdown(game) {
+  const box = $('countdown-box');
+  const enabled = !!(game.settings && game.settings.countdownEnabled);
+  const targetMs =
+    game.countdownTarget && game.countdownTarget.toMillis ? game.countdownTarget.toMillis() : null;
+  const show = enabled && targetMs && gameStatus === 'lobby';
+  if (!show) {
+    box.hidden = true;
+    if (countdownTimer) {
+      clearInterval(countdownTimer);
+      countdownTimer = null;
+    }
+    return;
+  }
+  box.hidden = false;
+  const tick = () => {
+    const remain = targetMs - Date.now();
+    $('countdown-value').textContent = remain > 0 ? fmtCountdown(remain) : 'まもなく開始!';
+  };
+  tick();
+  if (countdownTimer) clearInterval(countdownTimer);
+  countdownTimer = setInterval(tick, 250);
 }
 
 function onLeaderboardSnapshot(lb) {
@@ -154,6 +202,8 @@ function onGameSnapshot(game) {
   renderCard();
   // 投げ銭: ホストが受け取り可能なら表示(勝敗に無関係・いつでも送れる)
   $('tip-panel').hidden = !game.tipsEnabled;
+  updateChat(game);
+  updateCountdown(game);
 }
 
 // ---------- 投げ銭 ----------

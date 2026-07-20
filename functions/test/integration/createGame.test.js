@@ -23,6 +23,8 @@ describe('createGame (integration, Firestore emulator)', () => {
       capacity: 20, // entitlement 未設定=無料(20人)。未指定 capacity は上限に丸まる
       allowDuplicateCards: false,
       prizeCount: 3,
+      chatEnabled: false,
+      countdownEnabled: false,
     });
     expect(game.draws).toEqual([]);
     expect(game.participantCount).toBe(0);
@@ -42,6 +44,8 @@ describe('createGame (integration, Firestore emulator)', () => {
       capacity: 100,
       allowDuplicateCards: true,
       prizeCount: 10,
+      chatEnabled: false,
+      countdownEnabled: false,
     });
   });
 

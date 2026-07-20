@@ -67,6 +67,14 @@
         <input type="checkbox" id="in-allowdup" style="width:auto">
         <label class="hint" for="in-allowdup" style="margin:0">同一カードを許可する(重複チェックを省略)</label>
       </div>
+      <div style="margin-top:10px; display:flex; align-items:center; gap:8px">
+        <input type="checkbox" id="in-chat" style="width:auto">
+        <label class="hint" for="in-chat" style="margin:0">チャットを有効にする(あとで切替も可能)</label>
+      </div>
+      <div style="margin-top:10px; display:flex; align-items:center; gap:8px">
+        <input type="checkbox" id="in-countdown" style="width:auto">
+        <label class="hint" for="in-countdown" style="margin:0">開始カウントダウンを使う</label>
+      </div>
 
       <div class="btn-row" style="margin-top:16px">
         <button class="btn-primary" id="create-btn">ゲームを作成</button>
@@ -117,6 +125,35 @@
       <h2 id="ranking-title">📊 暫定ランキング</h2>
       <p class="hint" id="ranking-note"></p>
       <div id="ranking-body"></div>
+    </section>
+
+    <!-- ライブ機能(チャット切替・開始カウントダウン) -->
+    <section class="panel" id="live-panel" hidden>
+      <h2>🎛️ ライブ機能</h2>
+      <div class="btn-row">
+        <button class="btn-ghost" id="chat-toggle-btn">チャット: —</button>
+      </div>
+      <div id="countdown-controls" hidden style="margin-top:12px">
+        <label class="hint" for="countdown-sec">開始カウントダウン(秒)</label>
+        <div style="display:flex; gap:8px; margin-top:6px; flex-wrap:wrap">
+          <input type="text" id="countdown-sec" value="180" inputmode="numeric" style="width:110px; text-transform:none">
+          <button class="btn-primary" id="countdown-start" style="width:auto">開始</button>
+          <button class="btn-ghost" id="countdown-stop" style="width:auto">停止</button>
+        </div>
+        <p class="hint" id="countdown-live"></p>
+      </div>
+      <p class="hint error-text" id="live-error"></p>
+    </section>
+
+    <!-- チャット(有効化時のみ) -->
+    <section class="panel" id="chat-panel" hidden>
+      <h2>💬 チャット</h2>
+      <div class="chat-list" id="chat-list"></div>
+      <div class="chat-input-row">
+        <input type="text" id="chat-input" placeholder="主催者としてメッセージを送信" maxlength="200" autocomplete="off" style="text-transform:none">
+        <button class="btn-primary" id="chat-send">送信</button>
+      </div>
+      <p class="hint error-text" id="chat-error"></p>
     </section>
 
     <!-- 投げ銭の受け取り設定(Stripe Connect・ホスト単位) -->

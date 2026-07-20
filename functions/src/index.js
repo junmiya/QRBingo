@@ -14,3 +14,6 @@ exports.stripeWebhook = require('./stripeWebhook').stripeWebhook;
 exports.createConnectAccount = require('./connectOnboard').createConnectAccount;
 exports.refreshConnectStatus = require('./connectOnboard').refreshConnectStatus;
 exports.createTipCheckout = require('./createTipCheckout').createTipCheckout;
+exports.sendChat = require('./sendChat').sendChat;
+exports.setChatEnabled = require('./gameOptions').setChatEnabled;
+exports.setCountdown = require('./gameOptions').setCountdown;
