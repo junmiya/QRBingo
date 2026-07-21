@@ -240,6 +240,31 @@ header.app-header {
 .chat-input-row input { flex: 1; }
 .chat-input-row button { width: auto; flex-shrink: 0; }
 
+/* ---------- モード切替タブ ---------- */
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin: 4px 0 14px;
+}
+.tab {
+  flex: 1;
+  padding: 14px 10px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: var(--radius-sm);
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--muted);
+}
+.tab:hover:not(.active) { background: var(--panel-2); }
+.tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.howto-list { margin: 0; padding-left: 1.3em; line-height: 1.9; }
+.howto-list li { margin-bottom: 6px; }
+
 /* ---------- 法的ページ ---------- */
 .legal { line-height: 1.9; }
 .legal h2 { font-size: 1.05rem; margin: 22px 0 6px; color: var(--text); }
