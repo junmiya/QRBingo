@@ -713,6 +713,10 @@ function renderAuth(user) {
     logoutBtn.hidden = false;
     $('email-login').hidden = true;
   }
+  // ログインが必要な操作(プラン購入・投げ銭の受け取り)は、ログイン後のみUIを表示
+  document.querySelectorAll('.login-gated').forEach((el) => {
+    el.hidden = isAnon;
+  });
 }
 
 async function handleEmailLogin() {

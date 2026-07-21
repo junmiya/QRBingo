@@ -51,8 +51,8 @@
 
       <p class="checkout-banner" id="checkout-banner" hidden></p>
 
-      <!-- アップグレード(主催者課金) -->
-      <div class="upgrade-box">
+      <!-- アップグレード(主催者課金・ログイン後のみ表示) -->
+      <div class="upgrade-box login-gated" hidden>
         <button class="upgrade-toggle" id="upgrade-toggle" type="button" aria-expanded="false">
           人数を増やす(アップグレード)
         </button>
@@ -183,7 +183,7 @@
     </section>
 
     <!-- 投げ銭の受け取り設定(Stripe Connect・ホスト単位) -->
-    <section class="panel" id="tips-setup-panel">
+    <section class="panel login-gated" id="tips-setup-panel" hidden>
       <h2>投げ銭の受け取り設定</h2>
       <p class="checkout-banner" id="connect-banner" hidden></p>
       <p class="hint" id="connect-status-text">確認中…</p>
