@@ -229,7 +229,7 @@ function showTipBanner() {
   banner.hidden = false;
   if (state === 'thanks') {
     banner.className = 'checkout-banner ok';
-    banner.textContent = '🎁 応援ありがとうございます!ホストに届きました。';
+    banner.textContent = '応援ありがとうございます!ホストに届きました。';
   } else {
     banner.className = 'checkout-banner';
     banner.textContent = '投げ銭はキャンセルされました。';
@@ -280,7 +280,7 @@ function onWinnerSnapshot(winner) {
   isWinnerFinal = true;
   $('rank-panel').hidden = false;
   $('rank-value').textContent = winner.rank;
-  $('rank-note').textContent = '🎉 おめでとうございます!確定順位です';
+  $('rank-note').textContent = 'おめでとうございます!確定順位です';
   $('win-code-box').hidden = false;
   $('win-code').textContent = winner.winCode;
 }
@@ -350,13 +350,15 @@ function celebrate() {
   celebrated = true;
   const box = document.createElement('div');
   box.className = 'confetti';
-  const EMOJI = ['🎉', '🎊', '⭐', '🎈', '✨'];
+  const COLORS = ['var(--col-b)', 'var(--col-i)', 'var(--col-n)', 'var(--col-g)', 'var(--col-o)'];
   for (let i = 0; i < 28; i++) {
     const s = document.createElement('span');
-    s.textContent = EMOJI[i % EMOJI.length];
+    s.style.background = COLORS[i % COLORS.length];
     s.style.left = Math.random() * 100 + 'vw';
     s.style.animationDelay = (Math.random() * 0.7).toFixed(2) + 's';
-    s.style.fontSize = Math.round(16 + Math.random() * 22) + 'px';
+    const size = Math.round(8 + Math.random() * 10);
+    s.style.width = size + 'px';
+    s.style.height = size + 'px';
     box.appendChild(s);
   }
   document.body.appendChild(box);
@@ -368,14 +370,14 @@ function renderStatus(evalResult) {
   const banner = $('status-banner');
   if (lines >= winLines) {
     banner.className = 'status-banner bingo';
-    banner.textContent = winLines > 1 ? `🎉 ${winLines}ライン達成!` : '🎉 ビンゴ!';
+    banner.textContent = winLines > 1 ? `${winLines}ライン達成!` : 'ビンゴ!';
     celebrate();
   } else if (lines > 0) {
     banner.className = 'status-banner reach';
     banner.textContent = `あと ${winLines - lines} ライン(${lines}/${winLines})`;
   } else if (evalResult.reachCount > 0) {
     banner.className = 'status-banner reach';
-    banner.textContent = `🔥 リーチ!(${evalResult.reachCount}本)`;
+    banner.textContent = `リーチ!(${evalResult.reachCount}本)`;
   } else {
     banner.className = 'status-banner';
     banner.textContent = '番号が呼ばれると自動でマークされます';

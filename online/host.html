@@ -18,7 +18,7 @@
 
     <!-- アカウント(課金・投げ銭受け取りにはログインが必要) -->
     <section class="panel" id="account-panel" hidden>
-      <h2>👤 アカウント</h2>
+      <h2>アカウント</h2>
       <p class="hint" id="account-status">確認中…</p>
       <div class="btn-row" style="margin-top:8px">
         <button class="btn-primary" id="login-btn" hidden>Googleでログイン</button>
@@ -44,7 +44,7 @@
 
     <!-- ゲーム作成フォーム -->
     <section class="panel" id="create-panel" hidden>
-      <h2>🎪 オンラインゲームを作成</h2>
+      <h2>オンラインゲームを作成</h2>
       <p class="hint">TV・配信画面にQRコードを表示し、視聴者にネットワーク経由でカードを配布します。</p>
 
       <p class="plan-badge" id="plan-badge" hidden></p>
@@ -54,7 +54,7 @@
       <!-- アップグレード(主催者課金) -->
       <div class="upgrade-box">
         <button class="upgrade-toggle" id="upgrade-toggle" type="button" aria-expanded="false">
-          ⬆️ 人数を増やす(アップグレード)
+          人数を増やす(アップグレード)
         </button>
         <div id="upgrade-plans" hidden>
           <p class="hint">購入すると1ゲームの参加上限が上がります。決済は Stripe(安全な外部決済)で行われ、カード情報はこのサイトには保存されません。</p>
@@ -110,7 +110,7 @@
 
     <!-- ロビー(参加受付中) -->
     <section class="panel" id="lobby-panel" hidden>
-      <h2>📱 参加用QRコード</h2>
+      <h2>参加用QRコード</h2>
       <div class="game-code" id="game-code"></div>
       <div class="qr-box" id="join-qr"></div>
       <p class="join-url" id="join-url"></p>
@@ -124,7 +124,7 @@
 
     <!-- 進行中 -->
     <section class="panel" id="playing-panel" hidden>
-      <h2>🎱 番号抽選 <span style="float:right; color:var(--muted); font-size:.85rem; font-weight:600">ゲーム: <span id="playing-game-code"></span> / 参加 <span id="playing-count">0</span>人</span></h2>
+      <h2>番号抽選 <span style="float:right; color:var(--muted); font-size:.85rem; font-weight:600">ゲーム: <span id="playing-game-code"></span> / 参加 <span id="playing-count">0</span>人</span></h2>
       <div class="ball-stage">
         <div class="ball empty" id="current-ball">
           <span class="ball-number">?</span>
@@ -136,26 +136,26 @@
       <p class="count-note" id="tip-total-note" hidden></p>
       <p class="hint error-text" id="draw-error"></p>
       <div class="btn-row" style="margin-top:14px">
-        <button class="btn-ghost" id="finish-btn">🏁 ゲームを終了して順位を確定</button>
+        <button class="btn-ghost" id="finish-btn">ゲームを終了して順位を確定</button>
       </div>
     </section>
 
     <!-- リーチ状況(進行中のみ・演出用) -->
     <section class="panel" id="reach-panel" hidden>
-      <h2>🔥 リーチ中 <span id="reach-count" style="color:var(--accent)"></span></h2>
+      <h2>リーチ中 <span id="reach-count" style="color:var(--accent)"></span></h2>
       <div id="reach-body"></div>
     </section>
 
     <!-- ランキング(進行中は暫定、終了後は確定+当選コード) -->
     <section class="panel" id="ranking-panel" hidden>
-      <h2 id="ranking-title">📊 暫定ランキング</h2>
+      <h2 id="ranking-title">暫定ランキング</h2>
       <p class="hint" id="ranking-note"></p>
       <div id="ranking-body"></div>
     </section>
 
     <!-- ライブ機能(チャット切替・開始カウントダウン) -->
     <section class="panel" id="live-panel" hidden>
-      <h2>🎛️ ライブ機能</h2>
+      <h2>ライブ機能</h2>
       <div class="btn-row">
         <button class="btn-ghost" id="chat-toggle-btn">チャット: —</button>
       </div>
@@ -173,7 +173,7 @@
 
     <!-- チャット(有効化時のみ) -->
     <section class="panel" id="chat-panel" hidden>
-      <h2>💬 チャット</h2>
+      <h2>チャット</h2>
       <div class="chat-list" id="chat-list"></div>
       <div class="chat-input-row">
         <input type="text" id="chat-input" placeholder="主催者としてメッセージを送信" maxlength="200" autocomplete="off" style="text-transform:none">
@@ -184,7 +184,7 @@
 
     <!-- 投げ銭の受け取り設定(Stripe Connect・ホスト単位) -->
     <section class="panel" id="tips-setup-panel">
-      <h2>🎁 投げ銭の受け取り設定</h2>
+      <h2>投げ銭の受け取り設定</h2>
       <p class="checkout-banner" id="connect-banner" hidden></p>
       <p class="hint" id="connect-status-text">確認中…</p>
       <div class="btn-row" style="margin-top:8px">
@@ -195,19 +195,19 @@
     </section>
 
     <section class="panel">
-      <h2>⚙️ ゲーム管理</h2>
+      <h2>ゲーム管理</h2>
       <div class="btn-row">
-        <button class="btn-ghost" id="reset-btn">🆕 新しいゲームを開始</button>
+        <button class="btn-ghost" id="reset-btn">新しいゲームを開始</button>
       </div>
       <p class="hint">この操作は表示をリセットするだけで、進行中のゲーム自体は継続されます(参加者は影響を受けません)。</p>
 
       <div style="margin-top:16px; padding-top:14px; border-top:1px solid var(--line)">
-        <label class="hint" for="resume-code"><strong>🔗 進行中のゲームに再接続</strong>(ゲームコードを入力)</label>
+        <label class="hint" for="resume-code"><strong>進行中のゲームに再接続</strong>(ゲームコードを入力)</label>
         <div style="display:flex; gap:8px; margin-top:6px; flex-wrap:wrap">
           <input type="text" id="resume-code" placeholder="例: U2WD" maxlength="8" autocomplete="off" style="width:150px">
           <button class="btn-primary" id="resume-btn" style="width:auto">再接続</button>
         </div>
-        <p class="hint">画面を閉じた/リセットした後でも、同じ端末なら自分のゲームに戻って「🏁 終了」できます。</p>
+        <p class="hint">画面を閉じた/リセットした後でも、同じ端末なら自分のゲームに戻って「終了」できます。</p>
         <p class="hint error-text" id="resume-error"></p>
       </div>
     </section>

@@ -107,7 +107,7 @@ async function handleUpgrade(ev) {
   const plan = card.dataset.plan;
   $('upgrade-error').textContent = '';
   if (isAnon) {
-    $('upgrade-error').textContent = '購入するには、上部「👤 アカウント」から Google でログインしてください（買ったプランを失わないため必須です）。';
+    $('upgrade-error').textContent = '購入するには、上部「アカウント」から Google でログインしてください（買ったプランを失わないため必須です）。';
     $('account-panel').scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
@@ -135,7 +135,7 @@ function showCheckoutBanner() {
   banner.hidden = false;
   if (state === 'success') {
     banner.className = 'checkout-banner ok';
-    banner.textContent = '✅ ご購入ありがとうございます。プランへの反映まで数十秒かかる場合があります(自動更新されます)。';
+    banner.textContent = 'ご購入ありがとうございます。プランへの反映まで数十秒かかる場合があります(自動更新されます)。';
   } else {
     banner.className = 'checkout-banner';
     banner.textContent = '決済はキャンセルされました。';
@@ -151,10 +151,10 @@ function renderConnect(acct) {
   const text = $('connect-status-text');
   const btn = $('connect-btn');
   if (acct && acct.chargesEnabled) {
-    text.textContent = '✅ 受け取り可能です。作成したゲームで参加者から投げ銭を受け取れます。';
+    text.textContent = '受け取り可能です。作成したゲームで参加者から投げ銭を受け取れます。';
     btn.hidden = true;
   } else if (acct && acct.stripeAccountId) {
-    text.textContent = '⏳ 接続手続きが未完了です。続きから設定してください。';
+    text.textContent = '接続手続きが未完了です。続きから設定してください。';
     btn.hidden = false;
     btn.textContent = '接続手続きを続ける';
   } else {
@@ -167,7 +167,7 @@ function renderConnect(acct) {
 async function handleConnect() {
   $('connect-error').textContent = '';
   if (isAnon) {
-    $('connect-error').textContent = '投げ銭を受け取るには、上部「👤 アカウント」から Google でログインしてください（受取設定を端末間で保持するため必須です）。';
+    $('connect-error').textContent = '投げ銭を受け取るには、上部「アカウント」から Google でログインしてください（受取設定を端末間で保持するため必須です）。';
     $('account-panel').scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
@@ -196,7 +196,7 @@ async function handleConnectReturn() {
     banner.hidden = false;
     if (res && res.chargesEnabled) {
       banner.className = 'checkout-banner ok';
-      banner.textContent = '✅ 接続が完了しました。投げ銭を受け取れます。';
+      banner.textContent = '接続が完了しました。投げ銭を受け取れます。';
     } else {
       banner.className = 'checkout-banner';
       banner.textContent = '接続はまだ完了していません。手続きを最後まで進めてください。';
@@ -382,7 +382,7 @@ function renderGame(game) {
   const tipNote = $('tip-total-note');
   if (game.tipsEnabled && (game.tipCount || 0) > 0) {
     tipNote.hidden = false;
-    tipNote.textContent = `🎁 投げ銭: ${game.tipCount}件 / ホスト受取 ¥${(game.tipTotalNet || 0).toLocaleString()}`;
+    tipNote.textContent = `投げ銭: ${game.tipCount}件 / ホスト受取 ¥${(game.tipTotalNet || 0).toLocaleString()}`;
   } else {
     tipNote.hidden = true;
   }
@@ -470,7 +470,7 @@ function onLeaderboard(lb) {
     return;
   }
   $('ranking-panel').hidden = false;
-  $('ranking-title').textContent = '📊 暫定ランキング';
+  $('ranking-title').textContent = '暫定ランキング';
   $('ranking-note').textContent = 'ゲーム終了時に順位・当選が確定します。';
   renderProvisional(lb.entries);
 }
@@ -478,7 +478,7 @@ function onLeaderboard(lb) {
 function onResults(results) {
   if (!results || !results.entries) return;
   $('ranking-panel').hidden = false;
-  $('ranking-title').textContent = '🏆 確定ランキング';
+  $('ranking-title').textContent = '確定ランキング';
   $('ranking-note').textContent = results.tieBreakApplied
     ? '同着があったため一部は抽選で決定しました(当選コードを当選者に照合してください)。'
     : '当選コードを当選者に照合して景品をお渡しください。';
@@ -611,7 +611,7 @@ function handleReset() {
   if (!confirm(
     '表示をリセットしますか?\n\n' +
     '※ 進行中のゲームは「終了」しません(参加者はそのまま継続)。\n' +
-    'ゲームを本当に終わらせたいときは、先に「🏁 ゲームを終了して順位を確定」を押してください。\n' +
+    'ゲームを本当に終わらせたいときは、先に「ゲームを終了して順位を確定」を押してください。\n' +
     'リセット後も、同じ端末なら下の「再接続」にゲームコードを入れて戻れます。'
   )) return;
   if (unwatch) unwatch();
@@ -708,7 +708,7 @@ function renderAuth(user) {
     $('email-login').hidden = false;
   } else {
     const who = user.email || user.displayName || 'ログイン済み';
-    status.innerHTML = `✅ ログイン中: <strong>${esc(who)}</strong>(プランは端末をまたいで引き継がれます)`;
+    status.innerHTML = `ログイン中: <strong>${esc(who)}</strong>(プランは端末をまたいで引き継がれます)`;
     loginBtn.hidden = true;
     logoutBtn.hidden = false;
     $('email-login').hidden = true;

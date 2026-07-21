@@ -28,13 +28,13 @@ function showToast(ev) {
   const name = esc(ev.nickname || '(不明)');
   let dwell = 3800;
   if (ev.type === 'bingo') {
-    el.textContent = `🎉 ${name} さんが BINGO!`;
+    el.textContent = `${name} さんが BINGO!`;
   } else if (ev.type === 'tip') {
     const amount = Number(ev.amount || 0).toLocaleString();
-    el.textContent = `💰 ${name} さんが ¥${amount} 応援!`;
+    el.textContent = `${name} さんが ¥${amount} 応援!`;
     dwell = 5500; // スパチャは別格・長めに表示
   } else {
-    el.textContent = `🔥 ${name} さんがリーチ!`;
+    el.textContent = `${name} さんがリーチ!`;
   }
   toastContainer().appendChild(el);
   setTimeout(() => el.classList.add('show'), 20);
