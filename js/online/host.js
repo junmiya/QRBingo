@@ -23,6 +23,7 @@ const createConnectAccountFn = callable('createConnectAccount');
 const refreshConnectStatusFn = callable('refreshConnectStatus');
 const setChatEnabledFn = callable('setChatEnabled');
 const setCountdownFn = callable('setCountdown');
+const cancelGameFn = callable('cancelGame');
 const startGameFn = callable('startGame');
 const drawNumberFn = callable('drawNumber');
 const finishGameFn = callable('finishGame');
@@ -607,13 +608,7 @@ async function handleRankingClick(ev) {
   }
 }
 
-function handleReset() {
-  if (!confirm(
-    '表示をリセットしますか?\n\n' +
-    '※ 進行中のゲームは「終了」しません(参加者はそのまま継続)。\n' +
-    'ゲームを本当に終わらせたいときは、先に「ゲームを終了して順位を確定」を押してください。\n' +
-    'リセット後も、同じ端末なら下の「再接続」にゲームコードを入れて戻れます。'
-  )) return;
+function clearGameView() {
   if (unwatch) unwatch();
   if (unwatchLeaderboard) unwatchLeaderboard();
   if (unwatchResults) unwatchResults();
@@ -634,6 +629,29 @@ function handleReset() {
   showPanel('create-panel');
 }
 
+function handleReset() {
+  if (!confirm(
+    '表示をリセットしますか?\n\n' +
+    '※ 進行中のゲームは「終了」しません(参加者はそのまま継続)。\n' +
+    'ゲームを本当に終わらせたいときは、先に「ゲームを終了して順位を確定」を押してください。\n' +
+    'リセット後も、同じ端末なら下の「再接続」にゲームコードを入れて戻れます。'
+  )) return;
+  clearGameView();
+}
+
+// ゲームを中止する(順位を出さずに終了)。ロビー・進行中どちらからでも可能。
+async function handleCancel() {
+  if (!gameId) return;
+  if (!confirm('このゲームを中止しますか?\n順位は確定されず、参加者の画面も「終了」になります。\nこの操作は取り消せません。')) return;
+  try {
+    await cancelGameFn({ gameId });
+    clearGameView();
+  } catch (err) {
+    const box = gameStatus === 'lobby' ? 'lobby-error' : 'draw-error';
+    $(box).textContent = err.message || String(err);
+  }
+}
+
 // ---------- イベント登録 ----------
 $('create-btn').addEventListener('click', handleCreate);
 $('start-btn').addEventListener('click', handleStart);
@@ -642,6 +660,8 @@ $('finish-btn').addEventListener('click', handleFinish);
 $('ranking-body').addEventListener('click', handleRankingClick);
 $('reset-btn').addEventListener('click', handleReset);
 $('resume-btn').addEventListener('click', handleResume);
+$('cancel-lobby-btn').addEventListener('click', handleCancel);
+$('cancel-playing-btn').addEventListener('click', handleCancel);
 $('upgrade-toggle').addEventListener('click', toggleUpgrade);
 $('upgrade-plans').addEventListener('click', handleUpgrade);
 $('connect-btn').addEventListener('click', handleConnect);

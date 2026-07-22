@@ -7,7 +7,7 @@ const { joinGame } = require('../../src/joinGame');
 const { reportReach } = require('../../src/reportReach');
 const { submitClaim } = require('../../src/submitClaim');
 const { sendChat } = require('../../src/sendChat');
-const { setChatEnabled, setCountdown } = require('../../src/gameOptions');
+const { setChatEnabled, setCountdown, cancelGame } = require('../../src/gameOptions');
 const { generateCard } = require('../../src/lib/bingo');
 const { db } = require('../../src/admin');
 const { uid } = require('./_helpers');
@@ -131,6 +131,35 @@ describe('チャット sendChat / setChatEnabled (integration)', () => {
     ).rejects.toMatchObject({ code: 'permission-denied' });
     game = (await db.doc(`games/${gameId}`).get()).data();
     expect(game.settings.chatEnabled).toBe(true); // 非ホストの変更は効かない
+  });
+});
+
+describe('ゲーム中止 cancelGame (integration)', () => {
+  test('ホストは lobby/playing のゲームを中止できる(status=expired)', async () => {
+    const host = uid();
+    const { gameId } = await createGame.run({ data: {}, auth: { uid: host } });
+    const res = await cancelGame.run({ data: { gameId }, auth: { uid: host } });
+    expect(res.status).toBe('expired');
+    const game = (await db.doc(`games/${gameId}`).get()).data();
+    expect(game.status).toBe('expired');
+  });
+
+  test('非ホストは中止できない', async () => {
+    const host = uid();
+    const { gameId } = await createGame.run({ data: {}, auth: { uid: host } });
+    await expect(
+      cancelGame.run({ data: { gameId }, auth: { uid: uid() } })
+    ).rejects.toMatchObject({ code: 'permission-denied' });
+  });
+});
+
+describe('投げ銭の既定 (integration)', () => {
+  test('投げ銭は常に有効。未接続ホストは tipsToHost=false(=100%運営)', async () => {
+    const host = uid();
+    const { gameId } = await createGame.run({ data: {}, auth: { uid: host } });
+    const game = (await db.doc(`games/${gameId}`).get()).data();
+    expect(game.tipsEnabled).toBe(true);
+    expect(game.tipsToHost).toBe(false);
   });
 });
 

@@ -46,13 +46,23 @@ exports.createConnectAccount = onCall({ secrets: [STRIPE_SECRET_KEY] }, async (r
   if (snap.exists && snap.data().stripeAccountId) {
     accountId = snap.data().stripeAccountId;
   } else {
-    const account = await stripe.accounts.create({
-      type: 'express',
-      // 事業者情報・本人確認は Stripe のオンボーディングで収集(PIIはStripeに隔離)
-      capabilities: { transfers: { requested: true } },
-      metadata: { uid },
-    });
-    accountId = account.id;
+    try {
+      const account = await stripe.accounts.create({
+        type: 'express',
+        // 事業者情報・本人確認は Stripe のオンボーディングで収集(PIIはStripeに隔離)
+        capabilities: { transfers: { requested: true } },
+        metadata: { uid },
+      });
+      accountId = account.id;
+    } catch (err) {
+      // Connect 未有効化などを分かりやすいメッセージにする(INTERNAL 回避)
+      console.error('accounts.create 失敗:', err && err.message);
+      throw new HttpsError(
+        'failed-precondition',
+        'Stripe Connect が未設定の可能性があります。Stripe ダッシュボードの「Connect」を有効化してください。（詳細: ' +
+          ((err && err.message) || 'unknown') + '）'
+      );
+    }
     await ref.set(
       {
         stripeAccountId: accountId,
@@ -65,15 +75,23 @@ exports.createConnectAccount = onCall({ secrets: [STRIPE_SECRET_KEY] }, async (r
     );
   }
 
-  const base = baseUrl(request.data && request.data.origin);
-  const link = await stripe.accountLinks.create({
-    account: accountId,
-    refresh_url: `${base}/online/host.html?connect=refresh`,
-    return_url: `${base}/online/host.html?connect=return`,
-    type: 'account_onboarding',
-  });
-
-  return { url: link.url };
+  try {
+    const base = baseUrl(request.data && request.data.origin);
+    const link = await stripe.accountLinks.create({
+      account: accountId,
+      refresh_url: `${base}/online/host.html?connect=refresh`,
+      return_url: `${base}/online/host.html?connect=return`,
+      type: 'account_onboarding',
+    });
+    return { url: link.url };
+  } catch (err) {
+    console.error('accountLinks.create 失敗:', err && err.message);
+    throw new HttpsError(
+      'failed-precondition',
+      'オンボーディングURLを作成できませんでした。Stripe Connect の設定をご確認ください。（詳細: ' +
+        ((err && err.message) || 'unknown') + '）'
+    );
+  }
 });
 
 exports.refreshConnectStatus = onCall({ secrets: [STRIPE_SECRET_KEY] }, async (request) => {

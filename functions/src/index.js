@@ -17,3 +17,4 @@ exports.createTipCheckout = require('./createTipCheckout').createTipCheckout;
 exports.sendChat = require('./sendChat').sendChat;
 exports.setChatEnabled = require('./gameOptions').setChatEnabled;
 exports.setCountdown = require('./gameOptions').setCountdown;
+exports.cancelGame = require('./gameOptions').cancelGame;

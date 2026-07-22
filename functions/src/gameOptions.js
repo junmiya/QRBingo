@@ -17,6 +17,21 @@ async function requireHostGame(gameId, uid) {
   return { ref, game: snap.data() };
 }
 
+// ゲームを中止する(順位を確定せずに終了)。lobby/playing のホストのみ。
+// status を 'expired' にして参加者側も「終了」表示に切り替える。
+exports.cancelGame = onCall(async (request) => {
+  if (!request.auth) throw new HttpsError('unauthenticated', 'サインインが必要です');
+  const gameId = String((request.data && request.data.gameId) || '').trim().toUpperCase();
+  if (!gameId) throw new HttpsError('invalid-argument', 'gameId が必要です');
+
+  const { ref, game } = await requireHostGame(gameId, request.auth.uid);
+  if (game.status === 'finished' || game.status === 'expired') {
+    return { status: game.status }; // 既に終了済みは何もしない(冪等)
+  }
+  await ref.update({ status: 'expired', countdownTarget: null });
+  return { status: 'expired' };
+});
+
 exports.setChatEnabled = onCall(async (request) => {
   if (!request.auth) throw new HttpsError('unauthenticated', 'サインインが必要です');
   const gameId = String((request.data && request.data.gameId) || '').trim().toUpperCase();

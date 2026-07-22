@@ -66,14 +66,16 @@ exports.createGame = onCall(async (request) => {
   const chatEnabled = Boolean(input.chatEnabled);
   const countdownEnabled = Boolean(input.countdownEnabled);
 
-  // 投げ銭(Phase B): ホストが Connect 接続済み(受取可能)なら、このゲームで投げ銭を
-  // 受け付ける。プレイヤー画面はこのフラグで投げ銭ボタンの表示可否を判断する。
-  let tipsEnabled = false;
+  // 投げ銭(Phase B): 常に受け付ける。ホストが Connect 接続済みなら投げ銭はホストへ
+  // (運営手数料を差し引いて)送金され、未接続なら 100% 運営に入る。
+  // tipsToHost はプレイヤー表示の文言(ホスト応援 / 運営応援)を正直にするためのフラグ。
+  const tipsEnabled = true;
+  let tipsToHost = false;
   try {
     const acct = await db.doc(`hostAccounts/${request.auth.uid}`).get();
-    tipsEnabled = !!(acct.exists && acct.data().chargesEnabled);
+    tipsToHost = !!(acct.exists && acct.data().chargesEnabled);
   } catch (e) {
-    tipsEnabled = false;
+    tipsToHost = false;
   }
 
   for (let attempt = 0; attempt < MAX_GAME_ID_ATTEMPTS; attempt++) {
@@ -99,6 +101,7 @@ exports.createGame = onCall(async (request) => {
         participantCount: 0,
         reachCount: 0,
         tipsEnabled,
+        tipsToHost,
         tipTotalNet: 0,
         tipCount: 0,
         countdownTarget: null,

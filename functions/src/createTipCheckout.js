@@ -50,14 +50,15 @@ exports.createTipCheckout = onCall({ secrets: [STRIPE_SECRET_KEY] }, async (requ
   if (!gameSnap.exists) throw new HttpsError('not-found', 'ゲームが見つかりません');
   const hostUid = gameSnap.data().hostUid;
 
+  // ホストが Stripe Connect を接続済みかどうかで振り分ける:
+  //  - 接続済み  : destination charge。ホストへ送金し、運営は手数料(既定50%)を受領。
+  //  - 未接続    : 通常課金(送金なし)。投げ銭は 100% 運営に入る。
   const acctSnap = await db.doc(`hostAccounts/${hostUid}`).get();
-  if (!acctSnap.exists || !acctSnap.data().stripeAccountId || !acctSnap.data().chargesEnabled) {
-    throw new HttpsError('failed-precondition', 'このゲームは投げ銭を受け付けていません');
-  }
-  const destination = acctSnap.data().stripeAccountId;
-
-  const rate = await commissionRate();
-  const fee = computeApplicationFee(amount, rate);
+  const connected = !!(
+    acctSnap.exists &&
+    acctSnap.data().stripeAccountId &&
+    acctSnap.data().chargesEnabled
+  );
 
   const origin = String(input.origin || '');
   const base = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
@@ -65,33 +66,42 @@ exports.createTipCheckout = onCall({ secrets: [STRIPE_SECRET_KEY] }, async (requ
   const Stripe = require('stripe');
   const stripe = new Stripe(STRIPE_SECRET_KEY.value());
 
-  const session = await stripe.checkout.sessions.create({
+  const params = {
     mode: 'payment',
     line_items: [
       {
         price_data: {
           currency: 'jpy',
           unit_amount: amount,
-          product_data: { name: 'QRBingo 投げ銭(ホストへの応援)' },
+          product_data: { name: connected ? 'QRBingo 投げ銭(ホストへの応援)' : 'QRBingo 投げ銭(運営への応援)' },
         },
         quantity: 1,
       },
     ],
-    payment_intent_data: {
-      application_fee_amount: fee, // 運営の取り分(Stripe手数料は運営負担)
-      transfer_data: { destination }, // ホストの接続アカウントへ送金
-    },
     metadata: {
       kind: 'tip',
       gameId,
       hostUid,
       fromUid: request.auth.uid,
       amount: String(amount),
-      fee: String(fee),
+      toHost: connected ? '1' : '0',
     },
     success_url: `${base}/online/player.html?g=${encodeURIComponent(gameId)}&tip=thanks`,
     cancel_url: `${base}/online/player.html?g=${encodeURIComponent(gameId)}&tip=cancel`,
-  });
+  };
 
+  if (connected) {
+    const rate = await commissionRate();
+    const fee = computeApplicationFee(amount, rate);
+    params.payment_intent_data = {
+      application_fee_amount: fee, // 運営の取り分(Stripe手数料は運営負担)
+      transfer_data: { destination: acctSnap.data().stripeAccountId }, // ホストへ送金
+    };
+    params.metadata.fee = String(fee); // ホスト受取 = amount - fee
+  } else {
+    params.metadata.fee = String(amount); // 全額が運営分(ホスト受取 0)
+  }
+
+  const session = await stripe.checkout.sessions.create(params);
   return { url: session.url };
 });

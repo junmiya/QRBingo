@@ -200,8 +200,19 @@ function onGameSnapshot(game) {
   latestDraws = game.draws || [];
   scheduleRevealTimers(latestDraws);
   renderCard();
-  // 投げ銭: ホストが受け取り可能なら表示(勝敗に無関係・いつでも送れる)
+  // 投げ銭: 常に表示可(勝敗に無関係・いつでも送れる)。送金先で文言を正直に切替。
   $('tip-panel').hidden = !game.tipsEnabled;
+  if (game.tipsEnabled) {
+    if (game.tipsToHost) {
+      $('tip-title').textContent = 'ホストを応援(投げ銭)';
+      $('tip-desc').textContent =
+        '勝敗には関係ありません。主催者への「応援」として送れます。決済は Stripe(安全な外部決済)で行われ、カード情報はこのサイトには保存されません。';
+    } else {
+      $('tip-title').textContent = '運営を応援(投げ銭)';
+      $('tip-desc').textContent =
+        '勝敗には関係ありません。このゲームの主催者は受け取り設定をしていないため、いただいた応援は運営(アプリ提供者)への支援になります。決済は Stripe で行われ、カード情報はこのサイトには保存されません。';
+    }
+  }
   updateChat(game);
   updateCountdown(game);
 }
