@@ -1,0 +1,44 @@
+name: Deploy to Firebase
+
+# このブランチに push すると、Functions / Firestore Rules / Hosting を自動デプロイします。
+# 事前に GitHub リポジトリの Secrets に FIREBASE_SERVICE_ACCOUNT(サービスアカウントJSON)を登録してください。
+on:
+  push:
+    branches:
+      - claude/qr-code-bingo-game-y9ix04
+  workflow_dispatch: {}
+
+concurrency:
+  group: firebase-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install functions dependencies
+        run: npm --prefix functions ci
+
+      - name: Unit tests (gate)
+        run: npm --prefix functions run test:unit
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Write service account key
+        run: printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - name: Deploy
+        run: firebase deploy --only functions,firestore:rules,hosting --project qrbingo-5c613 --non-interactive
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json

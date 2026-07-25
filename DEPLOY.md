@@ -171,6 +171,33 @@ firebase deploy --only functions
 
 ---
 
+## GitHub Actions で自動デプロイ(push で自動反映)
+
+`.github/workflows/firebase-deploy.yml` を追加済み。作業ブランチに push すると
+Functions / Firestore Rules / Hosting を自動デプロイします(ローカルでのコマンド不要)。
+
+### 一度だけの準備:サービスアカウントと GitHub Secret
+
+1. **Google Cloud Console**(プロジェクト qrbingo-5c613)→ **IAM と管理 → サービス アカウント**
+   → **サービス アカウントを作成**(例: `github-deployer`)
+2. 次のロールを付与(v2 Functions + Secrets + Hosting のデプロイに必要):
+   - 編集者(Editor)
+   - Firebase Admin
+   - サービス アカウント ユーザー(Service Account User)
+   - Secret Manager 管理者(Secret Manager Admin)
+3. 作成したサービスアカウント → **キー → 鍵を追加 → JSON** をダウンロード
+4. **GitHub リポジトリ** → Settings → Secrets and variables → **Actions** → New repository secret
+   - Name: `FIREBASE_SERVICE_ACCOUNT`
+   - Secret: ダウンロードした JSON の中身を**そのまま貼り付け**
+5. 以降は作業ブランチへ push すると自動デプロイ。手動実行は Actions タブの
+   「Run workflow」から可能。
+
+> Stripe のキー(STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET)は Secret Manager に
+> 設定済みのものが使われます(ワークフローには含めません)。値を変える時だけ
+> `firebase functions:secrets:set ...` を実行してください。
+
+---
+
 ## v1(オフラインモード)だけをすぐ公開する
 
 Firebase 不要。**GitHub Pages** が最短です。
