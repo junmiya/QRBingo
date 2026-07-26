@@ -176,7 +176,25 @@ firebase deploy --only functions
 `.github/workflows/firebase-deploy.yml` を追加済み。作業ブランチに push すると
 Functions / Firestore Rules / Hosting を自動デプロイします(ローカルでのコマンド不要)。
 
-### 一度だけの準備:サービスアカウントと GitHub Secret
+### 一度だけの準備(かんたん版):FIREBASE_TOKEN
+
+サービスアカウントを作れない/権限が無い場合は、**あなた自身の Firebase ログインで
+CI トークンを発行**するのが最短です(オーナー権限のまま、SA不要)。
+
+```bash
+firebase login:ci        # ブラウザでログイン → トークンが表示される
+```
+
+表示された **トークン**を、GitHub リポジトリ → Settings → Secrets and variables →
+**Actions** → New repository secret に登録:
+- Name: `FIREBASE_TOKEN`
+- Secret: 発行されたトークン
+
+これだけで、以降は push で自動デプロイされます。
+
+### 一度だけの準備(サービスアカウント版):FIREBASE_SERVICE_ACCOUNT
+
+SA を作れる場合はこちらでも可(推奨・より安全)。
 
 1. **Google Cloud Console**(プロジェクト qrbingo-5c613)→ **IAM と管理 → サービス アカウント**
    → **サービス アカウントを作成**(例: `github-deployer`)
