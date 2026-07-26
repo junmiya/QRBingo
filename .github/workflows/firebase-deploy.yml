@@ -29,6 +29,11 @@ jobs:
       - name: Install functions dependencies
         run: npm --prefix functions ci
 
+      # 共有ロジック(src/lib/bingo.js)は sync-lib が生成する gitignore 対象。
+      # test:unit は pretest を発火しないため、ここで明示的に生成しておく。
+      - name: Sync shared lib
+        run: npm --prefix functions run sync-lib
+
       - name: Unit tests (gate)
         run: npm --prefix functions run test:unit
 
