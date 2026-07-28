@@ -4,13 +4,34 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ホスト(オンライン) - QRBingo</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎱</text></svg>">
+  <link rel="icon" href="../img/favicon.svg">
   <link rel="stylesheet" href="../css/style.css">
+  <style>
+    /* PC以上ではダッシュボード風の2カラムに。
+       主要パネル(アカウント/作成/ロビー/抽選)は全幅、
+       サブパネルは自動で2カラムに流す。hidden の要素があっても
+       崩れないよう、行番号は固定しない。 */
+    @media (min-width: 1024px) {
+      main {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        align-items: start;
+      }
+      main > * { grid-column: 1 / -1; margin: 0; }
+      #reach-panel,
+      #ranking-panel,
+      #live-panel,
+      #chat-panel,
+      #tips-setup-panel,
+      #manage-panel { grid-column: auto; }
+    }
+  </style>
 </head>
 <body>
   <header class="app-header">
-    <h1 class="logo"><a href="../index.html"><span class="q">QR</span>Bingo</a></h1>
-    <p class="tagline">ホスト画面(オンラインモード)</p>
+    <h1 class="logo"><a href="../index.html"><img src="../img/logo.svg" alt="QRBingo" width="264" height="80"></a></h1>
+    <p class="tagline">ホスト画面(オンラインモード) — Firebase リアルタイム配信ビンゴ</p>
   </header>
 
   <main>
@@ -18,15 +39,15 @@
 
     <!-- アカウント(課金・投げ銭受け取りにはログインが必要) -->
     <section class="panel" id="account-panel" hidden>
-      <h2>アカウント</h2>
+      <h2>👤 アカウント</h2>
       <p class="hint" id="account-status">確認中…</p>
       <div class="btn-row" style="margin-top:8px">
-        <button class="btn-primary" id="login-btn" hidden>Googleでログイン</button>
+        <button class="btn-primary" id="login-btn" hidden>🔐 Googleでログイン</button>
         <button class="btn-ghost" id="logout-btn" hidden>ログアウト</button>
       </div>
 
       <!-- メール/パスワードでログイン(または新規登録) -->
-      <div id="email-login" hidden style="margin-top:12px; padding-top:12px; border-top:1px solid var(--line)">
+      <div id="email-login" hidden style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border)">
         <label class="hint">またはメール/パスワードでログイン(初回は自動で登録)</label>
         <div style="display:flex; gap:8px; margin-top:6px; flex-wrap:wrap">
           <input type="email" id="login-email" placeholder="メールアドレス" autocomplete="username" style="flex:1; min-width:180px; text-transform:none">
@@ -44,7 +65,7 @@
 
     <!-- ゲーム作成フォーム -->
     <section class="panel" id="create-panel" hidden>
-      <h2>オンラインゲームを作成</h2>
+      <h2>🎮 オンラインゲームを作成</h2>
       <p class="hint">TV・配信画面にQRコードを表示し、視聴者にネットワーク経由でカードを配布します。</p>
 
       <p class="plan-badge" id="plan-badge" hidden></p>
@@ -54,7 +75,7 @@
       <!-- アップグレード(主催者課金・ログイン後のみ表示) -->
       <div class="upgrade-box login-gated" hidden>
         <button class="upgrade-toggle" id="upgrade-toggle" type="button" aria-expanded="false">
-          人数を増やす(アップグレード)
+          📈 人数を増やす(アップグレード)
         </button>
         <div id="upgrade-plans" hidden>
           <p class="hint">購入すると1ゲームの参加上限が上がります。決済は Stripe(安全な外部決済)で行われ、カード情報はこのサイトには保存されません。</p>
@@ -78,15 +99,15 @@
       </div>
 
       <div style="margin-top:14px">
-        <label class="hint" for="in-winlines">勝利条件(ライン数)</label>
+        <label class="hint" for="in-winlines"><strong>勝利条件(ライン数)</strong></label>
         <input type="text" id="in-winlines" value="1" inputmode="numeric" style="text-transform:none">
       </div>
       <div style="margin-top:10px">
-        <label class="hint" for="in-capacity">定員 <span id="capacity-hint" class="hint"></span></label>
+        <label class="hint" for="in-capacity"><strong>定員</strong> <span id="capacity-hint" class="hint"></span></label>
         <input type="text" id="in-capacity" placeholder="上限まで" inputmode="numeric" style="text-transform:none">
       </div>
       <div style="margin-top:10px">
-        <label class="hint" for="in-prizes">景品数</label>
+        <label class="hint" for="in-prizes"><strong>景品数</strong></label>
         <input type="text" id="in-prizes" value="3" inputmode="numeric" style="text-transform:none">
       </div>
       <div style="margin-top:10px; display:flex; align-items:center; gap:8px">
@@ -103,21 +124,21 @@
       </div>
 
       <div class="btn-row" style="margin-top:16px">
-        <button class="btn-primary" id="create-btn">ゲームを作成</button>
+        <button class="btn-primary" id="create-btn">🎯 ゲームを作成</button>
       </div>
       <p class="hint error-text" id="create-error"></p>
     </section>
 
     <!-- ロビー(参加受付中) -->
     <section class="panel" id="lobby-panel" hidden>
-      <h2>参加用QRコード</h2>
+      <h2>📱 参加用QRコード</h2>
       <div class="game-code" id="game-code"></div>
       <div class="qr-box" id="join-qr"></div>
       <p class="join-url" id="join-url"></p>
       <p class="hint" id="lobby-settings"></p>
       <p class="hint">参加人数: <strong id="participant-count">0</strong> 人</p>
       <div class="btn-row" style="margin-top:10px">
-        <button class="btn-primary" id="start-btn">ゲームを開始する</button>
+        <button class="btn-primary" id="start-btn">▶️ ゲームを開始する</button>
         <button class="btn-ghost" id="cancel-lobby-btn">このゲームを中止</button>
       </div>
       <p class="hint error-text" id="lobby-error"></p>
@@ -125,41 +146,44 @@
 
     <!-- 進行中 -->
     <section class="panel" id="playing-panel" hidden>
-      <h2>番号抽選 <span style="float:right; color:var(--muted); font-size:.85rem; font-weight:600">ゲーム: <span id="playing-game-code"></span> / 参加 <span id="playing-count">0</span>人</span></h2>
+      <h2>🎲 番号抽選</h2>
+      <p class="hint" style="margin-bottom:12px">ゲーム: <strong id="playing-game-code"></strong> / 参加 <strong id="playing-count">0</strong>人</p>
       <div class="ball-stage">
         <div class="ball empty" id="current-ball">
           <span class="ball-number">?</span>
         </div>
-        <button class="btn-primary" id="draw-btn">抽選する!</button>
+        <button class="btn-primary" id="draw-btn" style="font-size:1.2rem; padding:18px">🎰 抽選する!</button>
       </div>
       <div class="history" id="history"></div>
       <p class="count-note" id="count-note"></p>
       <p class="count-note" id="tip-total-note" hidden></p>
       <p class="hint error-text" id="draw-error"></p>
       <div class="btn-row" style="margin-top:14px">
-        <button class="btn-ghost" id="finish-btn">ゲームを終了して順位を確定</button>
-        <button class="btn-ghost" id="cancel-playing-btn">順位を出さずに中止</button>
+        <button class="btn-primary" id="finish-btn" style="background:linear-gradient(135deg, var(--primary), var(--accent-yellow))">✅ ゲームを終了して順位を確定</button>
+      </div>
+      <div class="btn-row" style="margin-top:10px">
+        <button class="btn-ghost" id="cancel-playing-btn">❌ 順位を出さずに中止</button>
       </div>
     </section>
 
     <!-- リーチ状況(進行中のみ・演出用) -->
     <section class="panel" id="reach-panel" hidden>
-      <h2>リーチ中 <span id="reach-count" style="color:var(--accent)"></span></h2>
+      <h2>🔔 リーチ中 <span id="reach-count" style="color:var(--primary)"></span></h2>
       <div id="reach-body"></div>
     </section>
 
     <!-- ランキング(進行中は暫定、終了後は確定+当選コード) -->
     <section class="panel" id="ranking-panel" hidden>
-      <h2 id="ranking-title">暫定ランキング</h2>
+      <h2 id="ranking-title">🏆 暫定ランキング</h2>
       <p class="hint" id="ranking-note"></p>
-      <div id="ranking-body"></div>
+      <div id="ranking-body" style="overflow-x:auto"></div>
     </section>
 
     <!-- ライブ機能(チャット切替・開始カウントダウン) -->
     <section class="panel" id="live-panel" hidden>
-      <h2>ライブ機能</h2>
+      <h2>⚡ ライブ機能</h2>
       <div class="btn-row">
-        <button class="btn-ghost" id="chat-toggle-btn">チャット: —</button>
+        <button class="btn-ghost" id="chat-toggle-btn">💬 チャット: —</button>
       </div>
       <div id="countdown-controls" hidden style="margin-top:12px">
         <label class="hint" for="countdown-sec">開始カウントダウン(秒)</label>
@@ -175,7 +199,7 @@
 
     <!-- チャット(有効化時のみ) -->
     <section class="panel" id="chat-panel" hidden>
-      <h2>チャット</h2>
+      <h2>💬 チャット</h2>
       <div class="chat-list" id="chat-list"></div>
       <div class="chat-input-row">
         <input type="text" id="chat-input" placeholder="主催者としてメッセージを送信" maxlength="200" autocomplete="off" style="text-transform:none">
@@ -186,24 +210,24 @@
 
     <!-- 投げ銭の受け取り設定(Stripe Connect・ホスト単位) -->
     <section class="panel login-gated" id="tips-setup-panel" hidden>
-      <h2>投げ銭の受け取り設定</h2>
+      <h2>💰 投げ銭の受け取り設定</h2>
       <p class="checkout-banner" id="connect-banner" hidden></p>
       <p class="hint" id="connect-status-text">確認中…</p>
       <div class="btn-row" style="margin-top:8px">
-        <button class="btn-primary" id="connect-btn" hidden>Stripeで受け取り口座を接続</button>
+        <button class="btn-primary" id="connect-btn" hidden>🔗 Stripeで受け取り口座を接続</button>
       </div>
       <p class="hint">接続すると、あなたが作成したゲームの参加者から「投げ銭(応援)」を受け取れます。運営手数料は50%、Stripe手数料は運営が負担します。入金・本人確認は Stripe が行います。</p>
       <p class="hint error-text" id="connect-error"></p>
     </section>
 
-    <section class="panel">
-      <h2>ゲーム管理</h2>
+    <section class="panel" id="manage-panel">
+      <h2>⚙️ ゲーム管理</h2>
       <div class="btn-row">
-        <button class="btn-ghost" id="reset-btn">新しいゲームを開始</button>
+        <button class="btn-ghost" id="reset-btn">🔄 新しいゲームを開始</button>
       </div>
       <p class="hint">この操作は表示をリセットするだけで、進行中のゲーム自体は継続されます(参加者は影響を受けません)。</p>
 
-      <div style="margin-top:16px; padding-top:14px; border-top:1px solid var(--line)">
+      <div style="margin-top:16px; padding-top:14px; border-top:1px solid var(--border)">
         <label class="hint" for="resume-code"><strong>進行中のゲームに再接続</strong>(ゲームコードを入力)</label>
         <div style="display:flex; gap:8px; margin-top:6px; flex-wrap:wrap">
           <input type="text" id="resume-code" placeholder="例: U2WD" maxlength="8" autocomplete="off" style="width:150px">

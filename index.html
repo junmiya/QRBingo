@@ -4,38 +4,38 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>QRBingo - QRコードビンゴゲーム</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎱</text></svg>">
+  <link rel="icon" href="img/favicon.svg">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <header class="app-header">
-    <h1 class="logo"><span class="q">QR</span>Bingo</h1>
+    <h1 class="logo"><img src="img/logo.svg" alt="QRBingo" width="330" height="100"></h1>
     <p class="tagline">QRコードで参加、番号は自動マーク。TV・配信でも遊べるビンゴ</p>
   </header>
 
   <main>
     <div class="tabs" role="tablist">
-      <button class="tab active" data-tab="online" role="tab" aria-selected="true">オンライン</button>
-      <button class="tab" data-tab="offline" role="tab" aria-selected="false">オフライン</button>
+      <button class="tab active" data-tab="online" role="tab" aria-selected="true">🌐 オンライン</button>
+      <button class="tab" data-tab="offline" role="tab" aria-selected="false">📱 オフライン</button>
     </div>
 
     <!-- ===== オンライン ===== -->
     <div class="tab-panel" id="tab-online">
       <section class="panel">
-        <h2>オンラインで遊ぶ</h2>
+        <h2>🎮 オンラインで遊ぶ</h2>
         <p class="hint">TV・YouTube Live などの配信や、離れた場所からの参加向け。カードはネットワークで配られ、抽選番号は全員の画面に自動マーク。リーチ/ビンゴは全員に速報表示、チャットや開始カウントダウン、投げ銭(応援)にも対応します。</p>
         <a class="big-choice" href="online/host.html">
-          ゲームを主催する(ホスト)
+          🎯 ゲームを主催する(ホスト)
           <small>ゲームを作成して参加用QRを表示、抽選ボタンを押すだけ。順位も自動で確定します</small>
         </a>
         <a class="big-choice" href="online/player.html">
-          ゲームに参加する(プレイヤー)
+          🎲 ゲームに参加する(プレイヤー)
           <small>QRコードかゲームコードで参加。番号は自動マーク、ビンゴも自動で申告されます</small>
         </a>
       </section>
 
       <section class="panel">
-        <h2>あそびかた(オンライン)</h2>
+        <h2>📖 あそびかた(オンライン)</h2>
         <ol class="howto-list">
           <li><strong>ホスト</strong>が「ゲームを主催する」でゲームを作成 → 参加用<strong>QRコード</strong>とゲームコード(4文字)が表示。TV・配信画面に映します。作成時に<strong>チャット</strong>や<strong>開始カウントダウン</strong>のON/OFFも選べます。</li>
           <li><strong>参加者</strong>はスマホでQRを読み取る(またはゲームコード入力)+ニックネーム入力で、自分だけのビンゴカードが配られます。<strong>ログイン不要</strong>。</li>
@@ -46,30 +46,30 @@
           <li>ホストが「ゲームを終了」すると<strong>順位が確定</strong>。上位(景品数まで)の当選者に<strong>当選コード</strong>が出るので、主催者に伝えて景品を受け取ります。</li>
           <li>ホストが受け取り設定をしていれば、参加者は<strong>投げ銭(応援)</strong>を送れます(勝敗には無関係)。</li>
         </ol>
-        <p class="hint">順位は「何球目でビンゴしたか」だけで決まるので、通信の速さや申告の早さは無関係。景品数を超える同着は公平に抽選されます。</p>
-        <p class="hint"><strong>ログインはホスト画面上部の「アカウント」</strong>から(Google または メール/パスワード)。ログインが必要なのは<strong>プラン購入・投げ銭の受け取りをする主催者だけ</strong>で、参加者は不要です。</p>
+        <p class="hint">💡 <strong>順位は「何球目でビンゴしたか」だけで決まるので</strong>、通信の速さや申告の早さは無関係。景品数を超える同着は公平に抽選されます。</p>
+        <p class="hint">🔐 <strong>ログインはホスト画面上部の「アカウント」</strong>から(Google または メール/パスワード)。ログインが必要なのは<strong>プラン購入・投げ銭の受け取りをする主催者だけ</strong>で、参加者は不要です。</p>
       </section>
     </div>
 
     <!-- ===== オフライン ===== -->
     <div class="tab-panel" id="tab-offline" hidden>
       <section class="panel">
-        <h2>オフラインで遊ぶ(会場向け・サーバー不要)</h2>
+        <h2>🏟️ オフラインで遊ぶ(会場向け・サーバー不要)</h2>
         <p class="hint">同じ会場で、ホストが番号を読み上げて各自で手マークする昔ながらの方式。<strong>ネット接続も Firebase もログインも不要</strong>。1台の端末でホスト、参加者はスマホでカードを受け取ります。</p>
         <div class="btn-row">
           <a class="big-choice" href="host.html" style="margin:0">
-            ホスト
+            🎤 ホスト
             <small>QR表示・抽選・ビンゴ検証</small>
           </a>
           <a class="big-choice" href="player.html" style="margin:0">
-            プレイヤー
+            🎯 プレイヤー
             <small>カード受取・手動マーク</small>
           </a>
         </div>
       </section>
 
       <section class="panel">
-        <h2>あそびかた(オフライン)</h2>
+        <h2>📖 あそびかた(オフライン)</h2>
         <ol class="howto-list">
           <li><strong>ホスト</strong>が「ホスト」画面でゲームを作成 → 参加用QRコードが表示されます。会場のスクリーンや紙で共有します。</li>
           <li><strong>参加者</strong>はスマホでQRを読み取ると、自分のビンゴカードが表示されます(オフラインなのでその端末内で完結)。</li>
@@ -77,7 +77,7 @@
           <li>参加者は呼ばれた番号を<strong>自分でタップしてマーク</strong>します。</li>
           <li>1ライン(初期設定)そろったら<strong>「ビンゴ!」</strong>。参加者はカードに表示される<strong>QRをホストに見せる</strong>と、ホスト画面でその場で<strong>正しいカードか検証</strong>できます。</li>
         </ol>
-        <p class="hint">通信環境が不安定な会場や、サーバー費用をかけたくないときに最適。カード配布はQRの読み取り時のみネットを使い、以降はオフラインで進行できます。</p>
+        <p class="hint">💡 <strong>通信環境が不安定な会場や、サーバー費用をかけたくないときに最適。</strong>カード配布はQRの読み取り時のみネットを使い、以降はオフラインで進行できます。</p>
       </section>
     </div>
   </main>

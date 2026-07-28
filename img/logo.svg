@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 200" role="img" aria-label="QRBingo">
+  <title>QRBingo</title>
+  <defs>
+    <linearGradient id="ballGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FF8A8A"/>
+      <stop offset="100%" stop-color="#F05252"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ===== QRコード風マーク ===== -->
+  <g>
+    <!-- 位置検出パターン(左上) -->
+    <rect x="18" y="26" width="56" height="56" rx="12" fill="none" stroke="#FF6B6B" stroke-width="11"/>
+    <rect x="38" y="46" width="16" height="16" rx="4" fill="#FF6B6B"/>
+    <!-- 位置検出パターン(右上) -->
+    <rect x="112" y="26" width="56" height="56" rx="12" fill="none" stroke="#4ECDC4" stroke-width="11"/>
+    <rect x="132" y="46" width="16" height="16" rx="4" fill="#FF6B6B"/>
+    <!-- 位置検出パターン(左下) -->
+    <rect x="18" y="120" width="56" height="56" rx="12" fill="none" stroke="#FF6B6B" stroke-width="11"/>
+    <rect x="38" y="140" width="16" height="16" rx="4" fill="#FF6B6B"/>
+
+    <!-- データモジュール -->
+    <g fill="#4ECDC4">
+      <rect x="86" y="26" width="14" height="14" rx="4"/>
+      <rect x="86" y="54" width="14" height="14" rx="4"/>
+      <rect x="86" y="96" width="14" height="14" rx="4"/>
+      <rect x="112" y="96" width="28" height="14" rx="6"/>
+      <rect x="154" y="96" width="14" height="14" rx="4"/>
+      <rect x="18" y="96" width="28" height="14" rx="6"/>
+      <rect x="58" y="96" width="14" height="14" rx="4"/>
+      <rect x="86" y="124" width="14" height="14" rx="4"/>
+      <rect x="86" y="162" width="14" height="14" rx="4"/>
+      <rect x="154" y="124" width="14" height="14" rx="4"/>
+      <rect x="154" y="162" width="14" height="14" rx="4"/>
+      <rect x="126" y="162" width="14" height="14" rx="4"/>
+    </g>
+  </g>
+
+  <!-- ===== ビンゴボール ===== -->
+  <g>
+    <ellipse cx="118" cy="182" rx="46" ry="8" fill="#4ECDC4" opacity=".45"/>
+    <circle cx="118" cy="140" r="44" fill="url(#ballGrad)"/>
+    <circle cx="118" cy="140" r="28" fill="#FFFFFF"/>
+    <text x="118" y="140" text-anchor="middle" dominant-baseline="central"
+          font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+          font-size="38" font-weight="700" fill="#F05252">7</text>
+    <path d="M 92 118 A 34 34 0 0 1 108 106" stroke="#FFFFFF" stroke-width="6"
+          stroke-linecap="round" fill="none" opacity=".85"/>
+  </g>
+
+  <!-- ===== ワードマーク ===== -->
+  <text x="212" y="132"
+        font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+        font-size="86" font-weight="800" letter-spacing="-1">
+    <tspan fill="#FF6B6B">QR</tspan><tspan fill="#4ECDC4">Bingo</tspan>
+  </text>
+
+  <!-- ===== 装飾(キラッ) ===== -->
+  <g stroke-linecap="round" fill="none">
+    <path d="M 618 44 L 626 24" stroke="#FF6B6B" stroke-width="9"/>
+    <path d="M 640 62 L 656 50" stroke="#4ECDC4" stroke-width="9"/>
+    <path d="M 636 88 L 656 84" stroke="#FF6B6B" stroke-width="9"/>
+  </g>
+</svg>
