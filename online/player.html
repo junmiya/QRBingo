@@ -18,7 +18,7 @@
 
     <!-- ゲームコード入力(QR以外からの参加) -->
     <section class="panel" id="gamecode-panel" hidden>
-      <h2>🎮 ゲームに参加</h2>
+      <h2>ゲームに参加</h2>
       <p class="hint">配信画面に表示されているゲームコードを入力してください。</p>
       <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap">
         <input type="text" id="in-gamecode" placeholder="例: ABCD" maxlength="8" autocomplete="off" style="flex:1; min-width:140px">
@@ -28,7 +28,7 @@
 
     <!-- ニックネーム入力(初回参加時のみ) -->
     <section class="panel" id="nickname-panel" hidden>
-      <h2>👤 ニックネームを入力</h2>
+      <h2>ニックネームを入力</h2>
       <p class="hint">ランキングに表示される名前です(1〜12文字)。</p>
       <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap">
         <input type="text" id="in-nickname" placeholder="例: たろう" maxlength="12" autocomplete="off" style="flex:1; min-width:140px; text-transform:none">
@@ -39,7 +39,7 @@
 
     <!-- エラー表示 -->
     <section class="panel" id="error-panel" hidden>
-      <h2>⚠️ 参加できません</h2>
+      <h2>参加できません</h2>
       <p class="hint" id="error-message"></p>
       <div class="btn-row" style="margin-top:12px">
         <button class="btn-ghost" id="error-retry-btn">別のゲームに参加</button>
@@ -52,13 +52,13 @@
 
       <!-- 開始までのカウントダウン(ホストが有効化した場合のみ) -->
       <section class="panel countdown-box" id="countdown-box" hidden>
-        <p class="hint" style="margin:0">⏳ 開始まで</p>
+        <p class="hint" style="margin:0">開始まで</p>
         <p class="countdown-value" id="countdown-value">--:--</p>
       </section>
 
       <!-- 当選/順位パネル(ビンゴ成立後に表示) -->
       <section class="panel" id="rank-panel" hidden>
-        <h2>🏆 あなたの順位</h2>
+        <h2>あなたの順位</h2>
         <p class="rank-big"><span id="rank-value">-</span> 位</p>
         <div class="win-code-box" id="win-code-box" hidden>
           <p class="hint" style="margin:0 0 6px">当選しました!この当選コードを主催者に伝えてください。</p>
@@ -68,7 +68,7 @@
       </section>
 
       <section class="panel">
-        <h2>🎲 あなたのカード</h2>
+        <h2>あなたのカード</h2>
         <p class="hint" style="margin:0 0 10px">ゲーム: <strong id="game-label"></strong></p>
         <div class="card-wrap">
           <table class="bingo readonly" id="card"></table>
@@ -78,7 +78,7 @@
 
       <!-- チャット(ホストが有効化した場合のみ表示) -->
       <section class="panel" id="chat-panel" hidden>
-        <h2>💬 チャット</h2>
+        <h2>チャット</h2>
         <div class="chat-list" id="chat-list"></div>
         <div class="chat-input-row">
           <input type="text" id="chat-input" placeholder="メッセージを入力" maxlength="200" autocomplete="off" style="text-transform:none">
@@ -89,7 +89,7 @@
 
       <!-- 投げ銭(ホストが受け取り設定をしている場合のみ表示) -->
       <section class="panel" id="tip-panel" hidden>
-        <h2 id="tip-title">💝 ホストを応援(投げ銭)</h2>
+        <h2 id="tip-title">ホストを応援(投げ銭)</h2>
         <p class="hint" id="tip-desc">勝敗には関係ありません。主催者への「応援」として送れます。決済は Stripe(安全な外部決済)で行われ、カード情報はこのサイトには保存されません。</p>
         <p class="checkout-banner" id="tip-banner" hidden></p>
         <div class="tip-grid">
