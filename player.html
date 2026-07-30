@@ -16,7 +16,7 @@
   <main>
     <!-- ゲームコード入力(QR以外からの参加) -->
     <section class="panel" id="join-form" hidden>
-      <h2>🎮 ゲームに参加</h2>
+      <h2>ゲームに参加</h2>
       <p class="hint">ホストの画面に表示されているゲームコード(4文字)を入力してください。</p>
       <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap">
         <input type="text" id="game-input" placeholder="例: ABCD" maxlength="8" autocomplete="off" style="flex:1; min-width:140px">
@@ -30,22 +30,22 @@
       <div class="status-banner" id="status-banner">番号が呼ばれたらタップしてマーク!</div>
 
       <section class="panel">
-        <h2>🎲 あなたのカード</h2>
+        <h2>あなたのカード</h2>
         <p class="hint" style="margin:0 0 10px">ゲーム: <strong id="game-label"></strong></p>
         <div class="card-wrap">
           <table class="bingo" id="card"></table>
         </div>
         <p class="card-id-label" id="card-id-label"></p>
         <div class="btn-row" style="margin-top:12px">
-          <button class="btn-primary" id="show-qr-btn">🏁 カードQRを表示(ビンゴ申告)</button>
+          <button class="btn-primary" id="show-qr-btn">カードQRを表示(ビンゴ申告)</button>
         </div>
       </section>
 
       <section class="panel">
-        <h2>⚙️ カード管理</h2>
+        <h2>カード管理</h2>
         <div class="btn-row">
-          <button class="btn-ghost" id="new-card-btn">🔄 カードを引き直す</button>
-          <button class="btn-ghost" id="leave-btn">🚪 別のゲームに参加</button>
+          <button class="btn-ghost" id="new-card-btn">カードを引き直す</button>
+          <button class="btn-ghost" id="leave-btn">別のゲームに参加</button>
         </div>
         <p class="hint">カードの引き直しはゲーム開始前に行ってください。マークもリセットされます。</p>
       </section>
@@ -60,7 +60,7 @@
   </footer>
 
   <dialog id="qr-dialog">
-    <h2 style="margin-top:0; text-align:center">🏁 ビンゴ申告用QR</h2>
+    <h2 style="margin-top:0; text-align:center">ビンゴ申告用QR</h2>
     <div class="qr-box" id="card-qr"></div>
     <p class="card-id-label" id="dialog-card-id"></p>
     <p class="hint" style="text-align:center">この画面をホストに見せて読み取ってもらってください</p>
