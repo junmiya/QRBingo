@@ -27,6 +27,9 @@ exports.drawNumber = onCall(async (request) => {
     if (game.status !== 'playing') {
       throw new HttpsError('failed-precondition', 'playing 状態のゲームのみ抽選できます');
     }
+    if (game.paused) {
+      throw new HttpsError('failed-precondition', '運営により一時停止中です。再開までお待ちください');
+    }
 
     const draws = game.draws || [];
     if (draws.length >= TOTAL_BALLS) {

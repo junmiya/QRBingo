@@ -63,6 +63,17 @@
       <p class="hint error-text" id="account-error"></p>
     </section>
 
+    <!-- 運営モード(運営者のみ表示・全ゲーム管理) -->
+    <section class="panel" id="admin-panel" hidden>
+      <h2>運営モード(全ゲーム管理)</h2>
+      <p class="hint">運営者(あなた)のみ表示されます。すべてのゲームを一覧し、一時停止・終了ができます。</p>
+      <div class="btn-row">
+        <button class="btn-ghost" id="admin-refresh-btn" style="width:auto">一覧を更新</button>
+      </div>
+      <p class="hint error-text" id="admin-error"></p>
+      <div id="admin-body"></div>
+    </section>
+
     <!-- ゲーム作成フォーム -->
     <section class="panel" id="create-panel" hidden>
       <h2>オンラインゲームを作成</h2>

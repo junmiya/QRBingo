@@ -25,6 +25,10 @@ const refreshConnectStatusFn = callable('refreshConnectStatus');
 const setChatEnabledFn = callable('setChatEnabled');
 const setCountdownFn = callable('setCountdown');
 const cancelGameFn = callable('cancelGame');
+const adminListGamesFn = callable('adminListGames');
+const adminPauseGameFn = callable('adminPauseGame');
+const adminEndGameFn = callable('adminEndGame');
+const ADMIN_EMAILS = ['miyajun@gmail.com'];
 const startGameFn = callable('startGame');
 const drawNumberFn = callable('drawNumber');
 const finishGameFn = callable('finishGame');
@@ -470,6 +474,15 @@ function renderGame(game) {
       renderBall(draws.length ? draws[draws.length - 1].n : null);
     }
     renderHistory(draws);
+    // 運営により一時停止中は抽選できない
+    if (game.paused) {
+      $('draw-btn').disabled = true;
+      $('draw-btn').textContent = '一時停止中(運営)';
+      $('draw-error').textContent = '運営により一時停止中です。再開までお待ちください。';
+    } else if ($('draw-btn').textContent === '一時停止中(運営)') {
+      $('draw-btn').textContent = '抽選する!';
+      $('draw-error').textContent = '';
+    }
     return;
   }
 
@@ -735,6 +748,8 @@ $('resume-btn').addEventListener('click', handleResume);
 $('cancel-lobby-btn').addEventListener('click', handleCancel);
 $('cancel-playing-btn').addEventListener('click', handleCancel);
 $('mygames-body').addEventListener('click', handleMyGamesClick);
+$('admin-refresh-btn').addEventListener('click', loadAdminGames);
+$('admin-body').addEventListener('click', handleAdminClick);
 $('upgrade-toggle').addEventListener('click', toggleUpgrade);
 $('upgrade-plans').addEventListener('click', handleUpgrade);
 $('connect-btn').addEventListener('click', handleConnect);
@@ -771,6 +786,7 @@ $('countdown-stop').addEventListener('click', handleCountdownStop);
     if (!u) return; // ログアウト直後(reload で匿名に入り直す)
     myUid = u.uid;
     renderAuth(u);
+    updateAdminMode(u);
     if (u.uid !== lastUid) {
       lastUid = u.uid;
       resubscribeHostDocs(u.uid);
@@ -880,6 +896,86 @@ function resubscribeHostDocs(uid) {
   unwatchConnect = watchDocPath(['hostAccounts', uid], renderConnect);
   if (unwatchMyGames) unwatchMyGames();
   unwatchMyGames = watchMyGames(uid, renderMyGames);
+}
+
+// ---------- 運営モード(全ゲーム管理) ----------
+const ADMIN_STATUS = {
+  lobby: '受付中',
+  playing: '進行中',
+  finished: '終了',
+  expired: '中止',
+};
+
+async function loadAdminGames() {
+  $('admin-error').textContent = '';
+  $('admin-refresh-btn').disabled = true;
+  try {
+    const res = await adminListGamesFn({});
+    renderAdminGames((res && res.games) || []);
+  } catch (err) {
+    $('admin-error').textContent = err.message || String(err);
+  } finally {
+    $('admin-refresh-btn').disabled = false;
+  }
+}
+
+function renderAdminGames(games) {
+  if (!games.length) {
+    $('admin-body').innerHTML = '<p class="hint">ゲームはありません。</p>';
+    return;
+  }
+  const rows = games
+    .map((g) => {
+      const active = g.status === 'lobby' || g.status === 'playing';
+      const label = ADMIN_STATUS[g.status] || g.status;
+      const pauseLabel = g.paused ? '再開' : '一時停止';
+      const pauseBtn = active
+        ? `<button data-aact="pause" data-id="${g.gameId}" data-paused="${g.paused ? '1' : '0'}">${pauseLabel}</button>`
+        : '';
+      const endBtn = active ? `<button data-aact="end" data-id="${g.gameId}">終了</button>` : '';
+      const st = label + (g.paused ? '(停止中)' : '');
+      return `<tr>
+        <td><strong>${esc(g.gameId)}</strong></td>
+        <td>${st}</td>
+        <td>${g.participantCount}人 / ${g.drawsCount}球</td>
+        <td><div class="row-actions">${pauseBtn}${endBtn}</div></td>
+      </tr>`;
+    })
+    .join('');
+  $('admin-body').innerHTML =
+    `<table class="leaderboard"><thead><tr>
+       <th>コード</th><th>状態</th><th>参加/抽選</th><th></th>
+     </tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+async function handleAdminClick(ev) {
+  const btn = ev.target.closest('button[data-aact]');
+  if (!btn) return;
+  const id = btn.dataset.id;
+  btn.disabled = true;
+  try {
+    if (btn.dataset.aact === 'pause') {
+      const toPaused = btn.dataset.paused !== '1';
+      await adminPauseGameFn({ gameId: id, paused: toPaused });
+    } else if (btn.dataset.aact === 'end') {
+      if (!confirm(`【運営】ゲーム ${id} を強制終了しますか?\n順位は確定されず、参加者の画面も「終了」になります。\nこの操作は取り消せません。`)) {
+        btn.disabled = false;
+        return;
+      }
+      await adminEndGameFn({ gameId: id });
+    }
+    await loadAdminGames(); // 反映後に一覧を更新
+  } catch (err) {
+    $('admin-error').textContent = err.message || String(err);
+    btn.disabled = false;
+  }
+}
+
+function updateAdminMode(user) {
+  const email = (user && user.email ? String(user.email) : '').toLowerCase();
+  const isAdmin = !user.isAnonymous && ADMIN_EMAILS.includes(email);
+  $('admin-panel').hidden = !isAdmin;
+  if (isAdmin) loadAdminGames();
 }
 
 // ---------- 課金プラン表示 ----------

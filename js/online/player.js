@@ -193,9 +193,11 @@ function scheduleRevealTimers(draws) {
   }
 }
 
+let gamePaused = false;
 function onGameSnapshot(game) {
   if (!game) return;
   gameStatus = game.status;
+  gamePaused = !!game.paused;
   winLines = (game.settings && game.settings.winLines) || 1;
   latestDraws = game.draws || [];
   scheduleRevealTimers(latestDraws);
@@ -379,6 +381,11 @@ function celebrate() {
 function renderStatus(evalResult) {
   const lines = evalResult.bingoLines.length;
   const banner = $('status-banner');
+  if (gamePaused && gameStatus === 'playing') {
+    banner.className = 'status-banner';
+    banner.textContent = '一時停止中(運営)。再開までお待ちください';
+    return;
+  }
   if (lines >= winLines) {
     banner.className = 'status-banner bingo';
     banner.textContent = winLines > 1 ? `${winLines}ライン達成!` : 'ビンゴ!';

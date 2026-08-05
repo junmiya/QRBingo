@@ -18,3 +18,6 @@ exports.sendChat = require('./sendChat').sendChat;
 exports.setChatEnabled = require('./gameOptions').setChatEnabled;
 exports.setCountdown = require('./gameOptions').setCountdown;
 exports.cancelGame = require('./gameOptions').cancelGame;
+exports.adminListGames = require('./adminOps').adminListGames;
+exports.adminPauseGame = require('./adminOps').adminPauseGame;
+exports.adminEndGame = require('./adminOps').adminEndGame;
