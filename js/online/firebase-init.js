@@ -25,6 +25,7 @@ import {
   onSnapshot,
   getDoc,
   query,
+  where,
   orderBy,
   limit,
 } from '../../lib/firebase/firebase-firestore.js';
@@ -163,6 +164,17 @@ async function readGame(gameId) {
   return snap.exists() ? snap.data() : null;
 }
 
+// このホストが主催する全ゲームを購読する({id, ...data} の配列。並びは呼び出し側)。
+// games の read は signedIn なら許可されるため、hostUid 等値クエリで取得できる。
+function watchMyGames(hostUid, onChange, onError) {
+  const q = query(collection(db, 'games'), where('hostUid', '==', hostUid));
+  return onSnapshot(
+    q,
+    (snap) => onChange(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+    onError || (() => {})
+  );
+}
+
 // 任意のドキュメントパスを購読する汎用ヘルパー。
 // segments 例: ['games', gameId, 'public', 'leaderboard'] / ['winners', winnerId]
 function watchDocPath(segments, onChange) {
@@ -210,6 +222,7 @@ export {
   callable,
   watchGame,
   readGame,
+  watchMyGames,
   watchDocPath,
   watchCollectionPath,
   watchOrdered,

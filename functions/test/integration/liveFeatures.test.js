@@ -153,6 +153,25 @@ describe('ゲーム中止 cancelGame (integration)', () => {
   });
 });
 
+describe('同時1ゲーム制限 (integration)', () => {
+  test('進行中のゲームがあると新規作成は拒否される(failed-precondition)', async () => {
+    const host = uid();
+    await createGame.run({ data: {}, auth: { uid: host } });
+    await expect(
+      createGame.run({ data: {}, auth: { uid: host } })
+    ).rejects.toMatchObject({ code: 'failed-precondition' });
+  });
+
+  test('終了(中止)すれば新しいゲームを作成できる', async () => {
+    const host = uid();
+    const { gameId } = await createGame.run({ data: {}, auth: { uid: host } });
+    await cancelGame.run({ data: { gameId }, auth: { uid: host } });
+    const res2 = await createGame.run({ data: {}, auth: { uid: host } });
+    expect(res2.gameId).toBeTruthy();
+    expect(res2.gameId).not.toBe(gameId);
+  });
+});
+
 describe('投げ銭の既定 (integration)', () => {
   test('投げ銭は常に有効。未接続ホストは tipsToHost=false(=100%運営)', async () => {
     const host = uid();

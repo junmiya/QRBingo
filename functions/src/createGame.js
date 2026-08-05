@@ -33,6 +33,23 @@ exports.createGame = onCall(async (request) => {
   }
   const input = request.data || {};
 
+  // 主催者は同時に1ゲームまで。進行中(lobby/playing)のゲームがあれば新規作成を拒否する。
+  // hostActiveGame/{uid} が現在の進行中ゲームを指す(finished/expired は解放扱い)。
+  const activeSnap = await db.doc(`hostActiveGame/${request.auth.uid}`).get();
+  if (activeSnap.exists && activeSnap.data().gameId) {
+    const prevId = activeSnap.data().gameId;
+    const prevSnap = await db.doc(`games/${prevId}`).get();
+    if (prevSnap.exists) {
+      const st = prevSnap.data().status;
+      if (st === 'lobby' || st === 'playing') {
+        throw new HttpsError(
+          'failed-precondition',
+          `進行中のゲーム(${prevId})があります。先に「ゲームを終了」または「中止」してから、新しいゲームを作成してください。`
+        );
+      }
+    }
+  }
+
   const winLinesR = parseIntSetting(input.winLines, 1, 12, DEFAULTS.winLines);
   if (!winLinesR.ok) throw new HttpsError('invalid-argument', 'winLines は 1〜12 の整数で指定してください');
 
@@ -108,6 +125,11 @@ exports.createGame = onCall(async (request) => {
         createdAt: FieldValue.serverTimestamp(),
         startedAt: null,
         finishedAt: null,
+      });
+      // このホストの「進行中ゲーム」ポインタを更新(同時1ゲーム制限に使用)
+      tx.set(db.doc(`hostActiveGame/${request.auth.uid}`), {
+        gameId,
+        updatedAt: FieldValue.serverTimestamp(),
       });
       return true;
     });

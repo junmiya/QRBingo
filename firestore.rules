@@ -89,6 +89,12 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // 主催者の「進行中ゲーム」ポインタ(同時1ゲーム制限用)。内部専用。
+    match /hostActiveGame/{uid} {
+      allow read: if false;
+      allow write: if false;
+    }
+
     // Stripe Connect の接続状態(投げ銭の受取可否)。本人のみ read。
     // write は Connect オンボーディング Function / Webhook のみ。PII は保持しない。
     match /hostAccounts/{uid} {

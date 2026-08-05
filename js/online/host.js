@@ -9,6 +9,7 @@ import {
   callable,
   watchGame,
   readGame,
+  watchMyGames,
   watchDocPath,
   watchCollectionPath,
 } from './firebase-init.js';
@@ -38,6 +39,7 @@ let myUid = null;
 let isAnon = true; // 課金・投げ銭受け取りはログイン必須(匿名では不可)
 let unwatchPlan = null;
 let unwatchConnect = null;
+let unwatchMyGames = null;
 let unwatch = null;
 let unwatchLeaderboard = null;
 let unwatchResults = null;
@@ -219,8 +221,10 @@ function updateLive(game) {
   chatCurrentlyEnabled = chatEnabled;
   $('chat-toggle-btn').textContent = 'チャット: ' + (chatEnabled ? 'ON(タップでOFF)' : 'OFF(タップでON)');
 
-  // チャットパネル(有効化されていれば表示・購読開始)
-  const showChat = chatEnabled && game.status !== 'finished';
+  // チャットパネル(進行中=lobby/playing かつ有効化時のみ表示・購読)。
+  // finished/expired では隠して購読解除する(終了/中止後に送信して
+  // 「ゲームは終了しました」エラーが出るのを防ぐ)。
+  const showChat = chatEnabled && active;
   $('chat-panel').hidden = !showChat;
   if (showChat && !chatUnwatch) {
     chatUnwatch = initChat(gameId, {
@@ -229,6 +233,9 @@ function updateLive(game) {
       sendBtn: $('chat-send'),
       errEl: $('chat-error'),
     });
+  } else if (!active && chatUnwatch) {
+    chatUnwatch();
+    chatUnwatch = null;
   }
 
   // カウントダウン操作(作成時に有効化した場合のみ・ロビー中が主用途)
@@ -290,6 +297,13 @@ async function handleCountdownStop() {
 }
 
 // ---------- 進行中ゲームへの再接続 ----------
+function attachToGame(id) {
+  gameId = id;
+  QRB.saveJSON(CURRENT_KEY, { gameId });
+  attachWatcher();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 async function handleResume() {
   const code = ($('resume-code').value || '').trim().toUpperCase();
   $('resume-error').textContent = '';
@@ -313,13 +327,71 @@ async function handleResume() {
       $('resume-error').textContent = 'このゲームは既に終了しています';
       return;
     }
-    gameId = code;
-    QRB.saveJSON(CURRENT_KEY, { gameId });
-    attachWatcher();
+    attachToGame(code);
   } catch (err) {
     $('resume-error').textContent = err.message || String(err);
   } finally {
     $('resume-btn').disabled = false;
+  }
+}
+
+// ---------- 主催しているゲーム一覧(管理モード) ----------
+const STATUS_LABEL = {
+  lobby: '受付中',
+  playing: '進行中',
+  finished: '終了(順位確定)',
+  expired: '中止',
+};
+
+function renderMyGames(games) {
+  const panel = $('mygames-panel');
+  const list = (games || []).slice().sort((a, b) => {
+    const am = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0;
+    const bm = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0;
+    return bm - am; // 新しい順
+  });
+  if (list.length === 0) {
+    panel.hidden = true;
+    return;
+  }
+  panel.hidden = false;
+  const rows = list
+    .map((g) => {
+      const active = g.status === 'lobby' || g.status === 'playing';
+      const label = STATUS_LABEL[g.status] || g.status;
+      const back = active ? `<button data-act="back" data-id="${g.id}">戻る</button>` : '';
+      const end = active ? `<button data-act="end" data-id="${g.id}">終了(中止)</button>` : '';
+      return `<tr class="${g.id === gameId ? 'is-winner' : ''}">
+        <td><strong>${esc(g.id)}</strong></td>
+        <td>${label}</td>
+        <td>${g.participantCount || 0}人</td>
+        <td><div class="row-actions">${back}${end}</div></td>
+      </tr>`;
+    })
+    .join('');
+  $('mygames-body').innerHTML =
+    `<table class="leaderboard"><thead><tr>
+       <th>コード</th><th>状態</th><th>参加</th><th></th>
+     </tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+async function handleMyGamesClick(ev) {
+  const btn = ev.target.closest('button[data-act]');
+  if (!btn) return;
+  const id = btn.dataset.id;
+  if (btn.dataset.act === 'back') {
+    attachToGame(id);
+  } else if (btn.dataset.act === 'end') {
+    if (!confirm(`ゲーム ${id} を終了(中止)しますか?\n順位は確定されず、参加者の画面も「終了」になります。`)) return;
+    btn.disabled = true;
+    try {
+      await cancelGameFn({ gameId: id });
+      // 一覧は購読で自動更新される。表示中のゲームなら画面もリセット。
+      if (id === gameId) clearGameView();
+    } catch (err) {
+      alert(err.message || String(err));
+      btn.disabled = false;
+    }
   }
 }
 
@@ -662,6 +734,7 @@ $('reset-btn').addEventListener('click', handleReset);
 $('resume-btn').addEventListener('click', handleResume);
 $('cancel-lobby-btn').addEventListener('click', handleCancel);
 $('cancel-playing-btn').addEventListener('click', handleCancel);
+$('mygames-body').addEventListener('click', handleMyGamesClick);
 $('upgrade-toggle').addEventListener('click', toggleUpgrade);
 $('upgrade-plans').addEventListener('click', handleUpgrade);
 $('connect-btn').addEventListener('click', handleConnect);
@@ -805,6 +878,8 @@ function resubscribeHostDocs(uid) {
   unwatchPlan = watchDocPath(['entitlements', uid], renderPlan);
   if (unwatchConnect) unwatchConnect();
   unwatchConnect = watchDocPath(['hostAccounts', uid], renderConnect);
+  if (unwatchMyGames) unwatchMyGames();
+  unwatchMyGames = watchMyGames(uid, renderMyGames);
 }
 
 // ---------- 課金プラン表示 ----------
