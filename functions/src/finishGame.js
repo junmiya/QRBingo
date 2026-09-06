@@ -5,7 +5,7 @@ const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { FieldValue } = require('firebase-admin/firestore');
 const { db } = require('./admin');
 const { rngFromString } = require('./lib/bingo');
-const { rankClaims, selectWinners } = require('./lib/ranking');
+const { rankClaims, markTies, selectWinners } = require('./lib/ranking');
 const {
   fetchVerifiedClaims,
   fetchCards,
@@ -40,8 +40,10 @@ exports.finishGame = onCall(async (request) => {
 
   // 2) 凍結済みクレームを集計。順位は achievedBallIndex 昇順(同値同順位)。
   const claims = await fetchVerifiedClaims(gameId);
-  const ranked = rankClaims(
-    claims.map((c) => ({ uid: c.uid, achievedBallIndex: c.achievedBallIndex, cardId: c.cardId }))
+  const ranked = markTies(
+    rankClaims(
+      claims.map((c) => ({ uid: c.uid, achievedBallIndex: c.achievedBallIndex, cardId: c.cardId }))
+    )
   );
 
   // 3) 景品数を超える同着は tieBreakSeed による決定論的抽選で確定(FR-009)。
@@ -88,6 +90,7 @@ exports.finishGame = onCall(async (request) => {
       nickname, // ホスト用: 伏字化しない(モデレーション判断のため)
       nicknameHidden: !!card.nicknameHidden,
       achievedBallIndex: c.achievedBallIndex,
+      tied: c.tied, // 同着(同じ球目)。景品数を超える場合は抽選で当落が決まる
       isWinner,
       winCode, // 当選者のみ。ホストが照合に使う
       handled: false,

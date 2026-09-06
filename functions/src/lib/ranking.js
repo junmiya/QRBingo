@@ -26,6 +26,16 @@ function rankClaims(claims) {
   });
 }
 
+// 同着(同じ achievedBallIndex が2件以上)に tied=true を付ける。
+// 表示用の補助情報であり、順位・当選判定には影響しない。
+function markTies(rankedClaims) {
+  const counts = new Map();
+  for (const c of rankedClaims) {
+    counts.set(c.achievedBallIndex, (counts.get(c.achievedBallIndex) || 0) + 1);
+  }
+  return rankedClaims.map((c) => ({ ...c, tied: counts.get(c.achievedBallIndex) > 1 }));
+}
+
 // 進行中の暫定当選者(rank <= prizeCount)。境界の同着は全員暫定当選扱い。
 function provisionalWinnerUids(rankedClaims, prizeCount) {
   const set = new Set();
@@ -76,4 +86,10 @@ function selectWinners(rankedClaims, prizeCount, rng) {
   return { winnerUids, tieBreakApplied };
 }
 
-module.exports = { rankClaims, provisionalWinnerUids, deterministicShuffle, selectWinners };
+module.exports = {
+  rankClaims,
+  markTies,
+  provisionalWinnerUids,
+  deterministicShuffle,
+  selectWinners,
+};

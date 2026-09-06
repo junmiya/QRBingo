@@ -2,6 +2,7 @@
 
 const {
   rankClaims,
+  markTies,
   provisionalWinnerUids,
   deterministicShuffle,
   selectWinners,
@@ -26,6 +27,22 @@ describe('lib/ranking', () => {
         ['b', 1],
         ['c', 3],
       ]);
+    });
+
+    test('markTies: 同 ballIndex が2件以上なら tied=true、単独は false', () => {
+      const ranked = markTies(
+        rankClaims([
+          { uid: 'c', achievedBallIndex: 40 },
+          { uid: 'a', achievedBallIndex: 30 },
+          { uid: 'b', achievedBallIndex: 30 },
+        ])
+      );
+      expect(ranked.map((r) => [r.uid, r.tied])).toEqual([
+        ['a', true],
+        ['b', true],
+        ['c', false],
+      ]);
+      expect(markTies([])).toEqual([]);
     });
 
     test('同 ballIndex 内は uid 昇順で安定', () => {

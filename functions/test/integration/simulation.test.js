@@ -46,16 +46,24 @@ describe('公平性シミュレーション (integration)', () => {
       truth.set(player, findAchievedBallIndex(grid, order, 1));
     }
 
-    // 全員クレーム送信(到着順はランダムでも結果は ballIndex 基準)
-    for (const { player } of players) {
-      const res = await submitClaim.run({ data: { gameId }, auth: { uid: player } });
-      const expected = truth.get(player);
-      if (expected == null) {
-        expect(res.status).toBe('rejected');
-      } else {
-        expect(res.status).toBe('verified');
-        expect(res.achievedBallIndex).toBe(expected);
-      }
+    // 全員クレーム送信(到着順はランダムでも結果は ballIndex 基準)。
+    // 実運用同様に同時到着させる(leaderboard の末尾フラッシュは1リクエストだけが待つ)。
+    const BATCH = 10;
+    for (let i = 0; i < players.length; i += BATCH) {
+      const batch = players.slice(i, i + BATCH);
+      const results = await Promise.all(
+        batch.map(({ player }) => submitClaim.run({ data: { gameId }, auth: { uid: player } }))
+      );
+      batch.forEach(({ player }, j) => {
+        const res = results[j];
+        const expected = truth.get(player);
+        if (expected == null) {
+          expect(res.status).toBe('rejected');
+        } else {
+          expect(res.status).toBe('verified');
+          expect(res.achievedBallIndex).toBe(expected);
+        }
+      });
     }
 
     // 終了して確定ランキングを取得

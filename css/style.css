@@ -741,6 +741,17 @@ table.bingo.readonly td:hover:not(.marked) { transform: none; border-color: var(
   font-variant-numeric: tabular-nums;
 }
 .leaderboard tr.is-winner td { background: color-mix(in srgb, var(--success) 9%, transparent); }
+.leaderboard .tie-badge {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: .7rem;
+  font-weight: 800;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--text-secondary) 14%, transparent);
+  vertical-align: middle;
+}
 .leaderboard .wincode-cell {
   font-weight: 800;
   color: color-mix(in srgb, var(--success) 80%, var(--text));

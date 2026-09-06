@@ -25,10 +25,17 @@ Firestore コレクション設計。**すべての write は Cloud Functions �
 制約: `draws[].n` は一意。`status` 遷移は lobby→playing→finished→expired の一方向。
 `settings` は `startedAt` 確定後は不変(FR-002)。
 
-補助フィールド `leaderboardDirty`(boolean): 公開ランキング再構築のスロットリング用。
-submitClaim が間隔内で再構築を見送った際に true。drawNumber 後の flush と finishGame で false に戻る。
+補助フィールド `leaderboardDirty`(boolean)/`leaderboardFlushAt`(Timestamp|null):
+公開ランキング再構築のスロットリング用。submitClaim が間隔(3秒)内に来た場合は dirty を立て、
+リース(`leaderboardFlushAt`)を取った1リクエストだけが間隔明けまで待って再構築する(末尾フラッシュ)。
+これにより最後のクレームも次の抽選を待たずに最大3秒以内で反映される。リース保持者が落ちた場合の
+保険として drawNumber 後の flush と finishGame の強制再構築が残る。
 大人数時に「クレームごとの全再計算+全配信(O(N²))」を「一定間隔に最大1回(O(時間/間隔×N))」へ
 抑えるための最適化(1000人規模のコストを約1/30以下に削減)。
+
+公開 leaderboard / private results の各エントリは `tied`(boolean)を持つ: 同じ
+achievedBallIndex のクレームが2件以上ある同着。順位は同順位(competition ranking)で、
+景品数を超える場合のみ finishGame が tieBreakSeed による決定論的抽選で当落を決める。
 
 ## cards/{cardId}
 

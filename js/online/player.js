@@ -166,14 +166,31 @@ function updateCountdown(game) {
 function onLeaderboardSnapshot(lb) {
   if (isWinnerFinal || !lb || !lb.entries) return;
   const mine = lb.entries.find((e) => e.uid === myUid);
-  if (mine) showRank(mine.rank, gameStatus === 'finished');
+  if (mine) showRank(mine.rank, gameStatus === 'finished', !!mine.tied);
 }
 
 // ---------- 抽選の反映(自動マーキング) ----------
+// 公開タイミングは「端末への到着時刻」基準で決める(端末時計とサーバー時刻のズレに依存しない)。
+// 以前はサーバーの revealAt と端末の Date.now() を比較していたため、端末時計が遅れていると
+// 次の抽選まで反映されないように見える不具合があった。
+// - 初回ロード時に既にある抽選: 即時公開(再接続シナリオ)
+// - 以降の新着: 到着時刻 + revealDelaySec で公開(遅延0なら到着即時)
+const revealAtByBall = new Map(); // ballIndex -> 公開する端末時刻(ms)
+let initialDrawsSeen = false;
+
+function registerArrivals(draws, delayMs) {
+  const now = Date.now();
+  for (const d of draws) {
+    if (!revealAtByBall.has(d.ballIndex)) {
+      revealAtByBall.set(d.ballIndex, initialDrawsSeen ? now + delayMs : now);
+    }
+  }
+  initialDrawsSeen = true;
+}
+
 function revealMillis(draw) {
-  return draw.revealAt && typeof draw.revealAt.toMillis === 'function'
-    ? draw.revealAt.toMillis()
-    : new Date(draw.revealAt).getTime();
+  const t = revealAtByBall.get(draw.ballIndex);
+  return t == null ? 0 : t;
 }
 
 function computeRevealedSet(draws) {
@@ -200,6 +217,7 @@ function onGameSnapshot(game) {
   gamePaused = !!game.paused;
   winLines = (game.settings && game.settings.winLines) || 1;
   latestDraws = game.draws || [];
+  registerArrivals(latestDraws, ((game.settings && game.settings.revealDelaySec) || 0) * 1000);
   scheduleRevealTimers(latestDraws);
   renderCard();
   // 投げ銭: 常に表示可(勝敗に無関係・いつでも送れる)。送金先で文言を正直に切替。
@@ -257,16 +275,15 @@ async function maybeClaim(bingoLineCount) {
   if (claimed || claiming) return;
   if (bingoLineCount < winLines) return;
   claiming = true;
+  // 順位はサーバーのランキング再構築(最大約3秒のスロットリング)後に leaderboard 購読で届く。
+  // サーバー側は末尾フラッシュのため応答を数秒保留することがあるので、送信時点で集計中を出す。
+  showRankPending();
   try {
     const res = await submitClaimFn({ gameId: currentGameId });
-    if (res.status === 'verified') {
-      claimed = true;
-      // 順位はサーバーのランキング再構築(スロットリング)後に leaderboard 購読で届く。
-      // それまでは集計中プレースホルダーを表示する。
-      showRankPending();
-    }
+    if (res.status === 'verified') claimed = true;
   } catch (e) {
     // 一時的な失敗(通信断など)は次回のスナップショットで再試行される
+    if (!claimed && !isWinnerFinal) $('rank-panel').hidden = true;
   } finally {
     claiming = false;
   }
@@ -279,13 +296,19 @@ function showRankPending() {
   $('rank-note').textContent = '順位を集計中…';
 }
 
-function showRank(rank, isFinal) {
+function showRank(rank, isFinal, tied) {
   $('rank-panel').hidden = false;
-  $('rank-value').textContent = rank;
-  $('rank-note').textContent = isFinal
-    ? '最終順位です'
-    : '暫定順位です。順位は「何球目でビンゴしたか」で決まるため、' +
+  $('rank-value').textContent = (tied ? '同率 ' : '') + rank;
+  if (isFinal) {
+    $('rank-note').textContent = tied
+      ? '最終順位です(同着。景品の当落は抽選で決定されました)'
+      : '最終順位です';
+  } else {
+    $('rank-note').textContent =
+      (tied ? '同着(同じ球目でビンゴ)がいます。景品数を超える場合は終了時に抽選で決まります。' : '') +
+      '暫定順位です。順位は「何球目でビンゴしたか」で決まるため、' +
       '通信の遅れで申告があとから届いた人が上に入ると変わることがあります(ゲーム終了時に確定)';
+  }
 }
 
 function onWinnerSnapshot(winner) {

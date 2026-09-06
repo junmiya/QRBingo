@@ -557,7 +557,10 @@ function onLeaderboard(lb) {
   }
   $('ranking-panel').hidden = false;
   $('ranking-title').textContent = '暫定ランキング';
-  $('ranking-note').textContent = 'ゲーム終了時に順位・当選が確定します。';
+  const hasTie = lb.entries.some((e) => e.tied);
+  $('ranking-note').textContent =
+    'ゲーム終了時に順位・当選が確定します。' +
+    (hasTie ? '「同率」は同じ球目でビンゴした同着です。景品数を超える場合は終了時に抽選で決まります。' : '');
   renderProvisional(lb.entries);
 }
 
@@ -571,11 +574,16 @@ function onResults(results) {
   renderFinal(results.entries);
 }
 
+// 同着(同じ球目でビンゴ)の表示。順位は同じで、景品数を超える場合のみ終了時に抽選。
+function tieBadge(e) {
+  return e.tied ? ' <span class="tie-badge">同率</span>' : '';
+}
+
 function renderProvisional(entries) {
   const rows = entries
     .map(
       (e) => `<tr class="${e.isWinner ? 'is-winner' : ''}">
-        <td class="rank-col">${e.rank}</td>
+        <td class="rank-col">${e.rank}${tieBadge(e)}</td>
         <td>${esc(e.nickname)}</td>
         <td>${e.achievedBallIndex}球目</td>
       </tr>`
@@ -599,7 +607,7 @@ function renderFinal(entries) {
         : '';
       const hideBtn = `<button data-action="hide" data-card="${cardId}" data-hidden="${e.nicknameHidden ? '1' : '0'}">${e.nicknameHidden ? '再表示' : '非表示'}</button>`;
       return `<tr class="${e.isWinner ? 'is-winner' : ''} ${e.handled ? 'handled' : ''}">
-        <td class="rank-col">${e.rank}</td>
+        <td class="rank-col">${e.rank}${tieBadge(e)}</td>
         <td>${esc(e.nickname)}${e.nicknameHidden ? ' <span class="hint">(伏字中)</span>' : ''}</td>
         <td>${e.achievedBallIndex}球目</td>
         <td>${winCell}</td>

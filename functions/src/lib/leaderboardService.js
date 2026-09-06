@@ -1,9 +1,9 @@
 'use strict';
 
-const { FieldValue } = require('firebase-admin/firestore');
+const { FieldValue, Timestamp } = require('firebase-admin/firestore');
 const { db } = require('../admin');
 const { rngFromString } = require('./bingo');
-const { rankClaims, provisionalWinnerUids, selectWinners } = require('./ranking');
+const { rankClaims, markTies, provisionalWinnerUids, selectWinners } = require('./ranking');
 
 const HIDDEN_LABEL = '(非表示)';
 const UNKNOWN_LABEL = '(不明)';
@@ -45,8 +45,8 @@ async function rebuildPublicLeaderboard(gameId) {
   const game = gameSnap.data();
   const prizeCount = game.settings.prizeCount;
 
-  const ranked = rankClaims(
-    claims.map((c) => ({ uid: c.uid, achievedBallIndex: c.achievedBallIndex }))
+  const ranked = markTies(
+    rankClaims(claims.map((c) => ({ uid: c.uid, achievedBallIndex: c.achievedBallIndex })))
   );
   const cards = await fetchCards(gameId, ranked.map((c) => c.uid));
 
@@ -69,6 +69,7 @@ async function rebuildPublicLeaderboard(gameId) {
       rank: c.rank,
       nickname: card.nicknameHidden ? HIDDEN_LABEL : card.nickname || UNKNOWN_LABEL,
       achievedBallIndex: c.achievedBallIndex,
+      tied: c.tied,
       isWinner: winnerUids.has(c.uid),
     };
   });
@@ -84,28 +85,67 @@ async function rebuildPublicLeaderboard(gameId) {
 // クレームのたびに全クレーム+全カードを読んで再構築(O(N))し、全員へ配信すると
 // 1ゲームで O(N^2) の読み取りが発生する(1000人で数百万リード)。
 // これを「一定間隔に最大1回だけ再構築」に制限し、コストを O(時間/間隔 × N) に抑える。
-// 取りこぼした最後のクレームは drawNumber 後の flush と finishGame の force で必ず反映される。
+//
+// 間隔内に届いたクレームは捨てずに「末尾フラッシュ」する: 間隔内で最初に来たリクエストが
+// リース(leaderboardFlushAt)を取り、間隔が明けるまで待ってから1回だけ再構築する。
+// これにより最後のクレームも次の抽選を待たずに最大 LEADERBOARD_THROTTLE_MS 以内で反映される。
+// リース保持者が途中で落ちた場合の保険として、drawNumber 後の flush と finishGame の force が残る。
 const LEADERBOARD_THROTTLE_MS = 3000;
 
-// スロットリング付き再構築。force=true なら即時、そうでなければ前回から
-// LEADERBOARD_THROTTLE_MS 以上経過している場合のみ再構築し、未満なら dirty フラグだけ立てる。
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function rebuildAndClear(gameId) {
+  await rebuildPublicLeaderboard(gameId);
+  await db
+    .doc(`games/${gameId}`)
+    .set({ leaderboardDirty: false, leaderboardFlushAt: null }, { merge: true });
+}
+
+// スロットリング付き再構築。force=true なら即時。前回から LEADERBOARD_THROTTLE_MS 以上
+// 経過していれば即時再構築。未満なら dirty を立て、リースを取れた呼び出しだけが
+// 間隔明けまで待って再構築する(他の呼び出しは待たずに戻る)。
+// 戻り値: この呼び出しで再構築したら true。
 async function rebuildLeaderboardThrottled(gameId, opts = {}) {
+  const gameRef = db.doc(`games/${gameId}`);
   if (opts.force) {
-    await rebuildPublicLeaderboard(gameId);
-    await db.doc(`games/${gameId}`).set({ leaderboardDirty: false }, { merge: true });
+    await rebuildAndClear(gameId);
     return true;
   }
   const lbSnap = await db.doc(`games/${gameId}/public/leaderboard`).get();
   const last =
     lbSnap.exists && lbSnap.data().updatedAt ? lbSnap.data().updatedAt.toMillis() : 0;
-  if (Date.now() - last >= LEADERBOARD_THROTTLE_MS) {
-    await rebuildPublicLeaderboard(gameId);
-    await db.doc(`games/${gameId}`).set({ leaderboardDirty: false }, { merge: true });
+  const elapsed = Date.now() - last;
+  if (elapsed >= LEADERBOARD_THROTTLE_MS) {
+    await rebuildAndClear(gameId);
     return true;
   }
-  // まだ間隔内。再構築は見送り、保留中であることだけ記録(安価な単一フィールド書き込み)。
-  await db.doc(`games/${gameId}`).set({ leaderboardDirty: true }, { merge: true });
-  return false;
+
+  // 間隔内。dirty を立て、末尾フラッシュのリースを取れるか試す。
+  const waitMs = LEADERBOARD_THROTTLE_MS - elapsed;
+  const acquired = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(gameRef);
+    if (!snap.exists) return false;
+    const flushAt = snap.data().leaderboardFlushAt;
+    if (flushAt && flushAt.toMillis() > Date.now()) {
+      // 既に誰かが待機中 → 自分は保留を記録するだけ
+      tx.set(gameRef, { leaderboardDirty: true }, { merge: true });
+      return false;
+    }
+    tx.set(
+      gameRef,
+      {
+        leaderboardDirty: true,
+        leaderboardFlushAt: Timestamp.fromMillis(Date.now() + waitMs),
+      },
+      { merge: true }
+    );
+    return true;
+  });
+  if (!acquired) return false;
+
+  await sleep(waitMs);
+  await rebuildAndClear(gameId);
+  return true;
 }
 
 // 保留中(dirty)の leaderboard を確定反映する。drawNumber 後に呼び、
@@ -113,8 +153,7 @@ async function rebuildLeaderboardThrottled(gameId, opts = {}) {
 async function flushLeaderboardIfDirty(gameId) {
   const gameSnap = await db.doc(`games/${gameId}`).get();
   if (!gameSnap.exists || !gameSnap.data().leaderboardDirty) return false;
-  await rebuildPublicLeaderboard(gameId);
-  await db.doc(`games/${gameId}`).set({ leaderboardDirty: false }, { merge: true });
+  await rebuildAndClear(gameId);
   return true;
 }
 
