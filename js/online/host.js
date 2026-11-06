@@ -717,10 +717,9 @@ function resubscribeHostDocs(uid) {
   unwatchMyGames = watchMyGames(uid, renderMyGames);
 }
 
+// 作成フォームの定員欄に、現在のプランの上限だけを表示する(プランの詳細・購入はマイページ)。
 function renderPlan(ent) {
   const plan = planSummary(ent);
-  $('plan-badge').hidden = false;
-  $('plan-badge').textContent = plan.text;
   $('capacity-hint').textContent = `(最大 ${plan.maxPlayers} 人・空欄で上限まで)`;
   $('in-capacity').setAttribute('placeholder', `最大 ${plan.maxPlayers}`);
 }

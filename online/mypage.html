@@ -60,31 +60,29 @@
         <p class="hint error-text" id="account-error"></p>
       </section>
 
-      <!-- プラン -->
+      <!-- プラン(料金・現在のプラン・購入をここに集約) -->
       <section class="panel" id="plan-panel">
         <h2>プラン</h2>
         <p class="plan-badge" id="plan-badge-mypage">現在のプラン: 確認中…</p>
         <p class="checkout-banner" id="checkout-banner" hidden></p>
-        <p class="hint gated-note anon-only">ログインすると、参加人数を増やすプランを購入できます。</p>
-        <div class="login-gated" hidden>
-          <p class="hint">購入すると1ゲームの参加上限が上がります。決済は Stripe(安全な外部決済)で行われ、カード情報はこのサイトには保存されません。</p>
-          <div class="plan-grid" id="upgrade-plans">
-            <button class="plan-card" data-plan="onetime_300" type="button">
-              <b>都度 300人</b><span class="plan-price">¥1,000</span><span class="hint">30日間</span>
-            </button>
-            <button class="plan-card" data-plan="onetime_1000" type="button">
-              <b>都度 1000人</b><span class="plan-price">¥3,000</span><span class="hint">30日間</span>
-            </button>
-            <button class="plan-card" data-plan="annual_300" type="button">
-              <b>年 300人</b><span class="plan-price">¥3,000</span><span class="hint">365日間</span>
-            </button>
-            <button class="plan-card" data-plan="annual_1000" type="button">
-              <b>年 1000人</b><span class="plan-price">¥10,000</span><span class="hint">365日間</span>
-            </button>
-          </div>
-          <p class="hint">1000人を超えるプランは個別対応します。お問い合わせください。</p>
+        <p class="hint" style="margin-top:12px">参加者は無料です。主催者も<strong>1ゲーム20人までは無料</strong>。それ以上の人数で開催するときは、下のプランを購入してください。購入すると、有効期間中に作成するゲームの参加上限が上がります。</p>
+        <div class="plan-grid" id="upgrade-plans">
+          <button class="plan-card" data-plan="onetime_300" type="button">
+            <b>都度 300人</b><span class="plan-price">¥1,000</span><span class="hint">30日間</span>
+          </button>
+          <button class="plan-card" data-plan="onetime_1000" type="button">
+            <b>都度 1,000人</b><span class="plan-price">¥3,000</span><span class="hint">30日間</span>
+          </button>
+          <button class="plan-card" data-plan="annual_300" type="button">
+            <b>年 300人</b><span class="plan-price">¥3,000</span><span class="hint">365日間</span>
+          </button>
+          <button class="plan-card" data-plan="annual_1000" type="button">
+            <b>年 1,000人</b><span class="plan-price">¥10,000</span><span class="hint">365日間</span>
+          </button>
         </div>
+        <p class="hint gated-note anon-only"><strong>購入にはログインが必要です</strong>(上の「アカウント」から)。買ったプランを端末をまたいで失わないためです。</p>
         <p class="hint error-text" id="upgrade-error"></p>
+        <p class="hint">価格はすべて税込です。決済は Stripe(安全な外部決済)で行われ、カード情報はこのサイトには保存されません。1,000人を超える場合は<a href="https://aiueon.io/contact" target="_blank" rel="noopener">お問い合わせ</a>ください。</p>
       </section>
 
     </div>

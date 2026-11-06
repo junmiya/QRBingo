@@ -68,7 +68,7 @@ exports.createGame = onCall(async (request) => {
     if (capacityR.value > entitlement.maxPlayers) {
       throw new HttpsError(
         'failed-precondition',
-        `このプランの上限は ${entitlement.maxPlayers} 人です。より大人数にするにはアップグレードしてください`
+        `現在のプランの上限は ${entitlement.maxPlayers} 人です。より大人数にするにはマイページでプランを購入してください`
       );
     }
     capacity = capacityR.value;
