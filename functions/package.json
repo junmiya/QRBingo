@@ -3,7 +3,7 @@
   "private": true,
   "description": "QRBingo v2 Cloud Functions — サーバー権威の抽選・カード発行・ビンゴ判定",
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "main": "src/index.js",
   "scripts": {
