@@ -64,8 +64,8 @@ exports.createCheckout = onCall({ secrets: [STRIPE_SECRET_KEY] }, async (request
     // 匿名UIDと購入を Webhook で紐づけるための最小情報(PIIではない)
     client_reference_id: request.auth.uid,
     metadata: { uid: request.auth.uid, planKey, quantity: String(quantity) },
-    success_url: `${base}/online/host.html?checkout=success`,
-    cancel_url: `${base}/online/host.html?checkout=cancel`,
+    success_url: `${base}/online/mypage.html?checkout=success`,
+    cancel_url: `${base}/online/mypage.html?checkout=cancel`,
   });
 
   return { url: session.url };

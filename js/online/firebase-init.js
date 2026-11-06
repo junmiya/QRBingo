@@ -9,6 +9,7 @@ import {
   connectAuthEmulator,
   signInAnonymously,
   onAuthStateChanged,
+  onIdTokenChanged,
   GoogleAuthProvider,
   linkWithPopup,
   signInWithPopup,
@@ -90,9 +91,12 @@ function ensureSignedIn() {
   return signInPromise;
 }
 
-// 認証状態の変化を購読する(匿名⇄Google の切替を検知)。
+// 認証状態の変化を購読する(匿名⇄Google/メールの切替を検知)。
+// onAuthStateChanged は UID が変わったときだけ発火するため、匿名アカウントを
+// そのまま昇格(link)したログインを検知できない。トークン更新でも発火する
+// onIdTokenChanged を使う(コールバックは何度呼ばれても安全に作ること)。
 function onUser(cb) {
-  return onAuthStateChanged(auth, (u) => cb(u));
+  return onIdTokenChanged(auth, (u) => cb(u));
 }
 
 // 匿名アカウントを Google に昇格(リンク)する。UID は維持され、既存の

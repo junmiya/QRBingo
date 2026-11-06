@@ -6,17 +6,32 @@
   <title>ホスト(オンライン) - QRBingo</title>
   <link rel="icon" href="../img/favicon.svg">
   <link rel="stylesheet" href="../css/style.css">
+  <script>
+    // 旧URL互換: 決済・口座接続の戻り先(?checkout / ?connect)や ?tab= は
+    // マイページ/運営メニューのページへ転送する(進行中の決済の戻りを失わないため)
+    (function () {
+      var qs = new URLSearchParams(location.search);
+      var tab = qs.get('tab');
+      if (qs.has('checkout') || qs.has('connect') || tab === 'mypage') {
+        qs.delete('tab');
+        var q = qs.toString();
+        location.replace('mypage.html' + (q ? '?' + q : ''));
+      } else if (tab === 'admin') {
+        location.replace('admin.html');
+      }
+    })();
+  </script>
   <style>
     /* PC以上ではゲームタブをダッシュボード風の2カラムに。
        主要パネル(作成/ロビー/抽選/終了)は全幅、サブパネルは2カラムに流す。 */
     @media (min-width: 1024px) {
-      #tab-game {
+      #host-main {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 20px;
         align-items: start;
       }
-      #tab-game > * { grid-column: 1 / -1; margin: 0; }
+      #host-main > * { grid-column: 1 / -1; margin: 0; }
       #reach-panel,
       #ranking-panel,
       #chat-panel,
@@ -28,21 +43,21 @@
   <header class="app-header">
     <h1 class="logo"><a href="../index.html"><img src="../img/logo.svg" alt="QRBingo" width="264" height="80"></a></h1>
     <p class="tagline">ホスト画面(オンラインモード)</p>
-    <button class="account-chip" id="account-chip" type="button" hidden>ゲスト(未ログイン)</button>
+    <a class="account-chip" id="account-chip" href="mypage.html" hidden>ゲスト(未ログイン)</a>
   </header>
 
   <main>
+    <!-- 共通メニュー(全ページ同じ)。運営は運営者ログイン時のみ欄外に表示 -->
+    <nav class="tabs top-menu site-nav" aria-label="メニュー">
+      <a class="tab active" data-nav="online" href="../index.html" aria-current="page">オンライン</a>
+      <a class="tab" data-nav="offline" href="../index.html#offline">オフライン</a>
+      <a class="tab" data-nav="mypage" href="../online/mypage.html">マイページ</a>
+    </nav>
+    <p class="admin-link" id="admin-link" hidden><a href="../online/admin.html">運営メニュー</a></p>
+
     <p id="conn-status" class="hint" style="text-align:center">接続中…</p>
 
-    <div class="tabs top-menu" role="tablist" id="host-tabs" hidden>
-      <a class="tab" href="../index.html">トップ</a>
-      <button class="tab active" data-tab="game" role="tab" aria-selected="true">ゲーム<span class="tab-dot" id="game-tab-dot" hidden></span></button>
-      <button class="tab" data-tab="mypage" role="tab" aria-selected="false">マイページ</button>
-      <button class="tab" data-tab="admin" role="tab" aria-selected="false" id="admin-tab" hidden>運営</button>
-    </div>
-
-    <!-- ===================== ゲーム ===================== -->
-    <div class="tab-panel" id="tab-game" hidden>
+    <div id="host-main" hidden>
 
       <!-- 進行中のゲームがあるのに表示していないとき(戻る導線) -->
       <section class="panel resume-banner" id="active-game-banner" hidden>
@@ -57,7 +72,7 @@
         <h2>ゲームを作成</h2>
         <p class="hint">TV・配信画面にQRコードを表示し、視聴者にネットワーク経由でカードを配布します。</p>
         <p class="plan-badge" id="plan-badge" hidden></p>
-        <p class="hint" style="margin-top:6px">参加人数を増やすには <a href="#" class="go-mypage">マイページ</a> からプランを購入できます(ログインが必要)。</p>
+        <p class="hint" style="margin-top:6px">参加人数を増やすには <a href="mypage.html">マイページ</a> からプランを購入できます(ログインが必要)。</p>
 
         <div style="margin-top:14px">
           <label class="hint" for="in-winlines"><strong>勝利条件(ライン数)</strong></label>
@@ -205,88 +220,6 @@
 
     </div>
 
-    <!-- ===================== マイページ ===================== -->
-    <div class="tab-panel" id="tab-mypage" hidden>
-      <!-- アカウント -->
-      <section class="panel" id="account-panel">
-        <h2>アカウント</h2>
-        <p class="hint" id="account-status">確認中…</p>
-        <div class="btn-row" style="margin-top:8px">
-          <button class="btn-primary" id="login-btn" hidden>Googleでログイン</button>
-          <button class="btn-ghost" id="logout-btn" hidden>ログアウト</button>
-        </div>
-
-        <div id="email-login" hidden style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border)">
-          <label class="hint">またはメール/パスワードでログイン(初回は自動で登録)</label>
-          <div style="display:flex; gap:8px; margin-top:6px; flex-wrap:wrap">
-            <input type="email" id="login-email" placeholder="メールアドレス" autocomplete="username" style="flex:1; min-width:180px; text-transform:none">
-          </div>
-          <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap">
-            <input type="password" id="login-pass" placeholder="パスワード(6文字以上)" autocomplete="current-password" style="flex:1; min-width:180px; text-transform:none">
-            <button class="btn-ghost" id="email-login-btn" style="width:auto">ログイン / 登録</button>
-          </div>
-        </div>
-
-        <p class="hint">参加者はログイン不要です。ログインが必要なのは<strong>プラン購入・投げ銭の受け取りをする主催者</strong>だけ。ログインするとプランや設定が端末をまたいで引き継がれます。</p>
-        <p class="hint">ログイン・購入をもって <a href="../legal/terms.html" target="_blank" rel="noopener">利用規約</a>・<a href="../legal/privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a>・<a href="../legal/tokushoho.html" target="_blank" rel="noopener">特商法表記</a> に同意したものとみなします。</p>
-        <p class="hint error-text" id="account-error"></p>
-      </section>
-
-      <!-- プラン -->
-      <section class="panel" id="plan-panel">
-        <h2>プラン</h2>
-        <p class="plan-badge" id="plan-badge-mypage"></p>
-        <p class="checkout-banner" id="checkout-banner" hidden></p>
-        <p class="hint gated-note anon-only">ログインすると、参加人数を増やすプランを購入できます。</p>
-        <div class="login-gated" hidden>
-          <p class="hint">購入すると1ゲームの参加上限が上がります。決済は Stripe(安全な外部決済)で行われ、カード情報はこのサイトには保存されません。</p>
-          <div class="plan-grid" id="upgrade-plans">
-            <button class="plan-card" data-plan="onetime_300" type="button">
-              <b>都度 300人</b><span class="plan-price">¥1,000</span><span class="hint">30日間</span>
-            </button>
-            <button class="plan-card" data-plan="onetime_1000" type="button">
-              <b>都度 1000人</b><span class="plan-price">¥3,000</span><span class="hint">30日間</span>
-            </button>
-            <button class="plan-card" data-plan="annual_300" type="button">
-              <b>年 300人</b><span class="plan-price">¥3,000</span><span class="hint">365日間</span>
-            </button>
-            <button class="plan-card" data-plan="annual_1000" type="button">
-              <b>年 1000人</b><span class="plan-price">¥10,000</span><span class="hint">365日間</span>
-            </button>
-          </div>
-          <p class="hint">1000人を超えるプランは個別対応します。お問い合わせください。</p>
-        </div>
-        <p class="hint error-text" id="upgrade-error"></p>
-      </section>
-
-      <!-- 投げ銭の受け取り設定(Stripe Connect・ホスト単位) -->
-      <section class="panel" id="tips-setup-panel">
-        <h2>投げ銭の受け取り設定</h2>
-        <p class="checkout-banner" id="connect-banner" hidden></p>
-        <p class="hint gated-note anon-only">ログインすると、参加者からの投げ銭(応援)を受け取る口座を設定できます。未設定の場合、投げ銭は運営の収益になります。</p>
-        <div class="login-gated" hidden>
-          <p class="hint" id="connect-status-text">確認中…</p>
-          <div class="btn-row" style="margin-top:8px">
-            <button class="btn-primary" id="connect-btn" hidden>Stripeで受け取り口座を接続</button>
-          </div>
-          <p class="hint">接続すると、あなたが作成したゲームの参加者から「投げ銭(応援)」を受け取れます。運営手数料は50%、Stripe手数料は運営が負担します。入金・本人確認は Stripe が行います。</p>
-        </div>
-        <p class="hint error-text" id="connect-error"></p>
-      </section>
-    </div>
-
-    <!-- ===================== 運営(運営者のみ) ===================== -->
-    <div class="tab-panel" id="tab-admin" hidden>
-      <section class="panel" id="admin-panel">
-        <h2>運営モード(全ゲーム管理)</h2>
-        <p class="hint">運営者のみ表示されます。すべてのゲームを一覧し、一時停止・終了ができます。</p>
-        <div class="btn-row">
-          <button class="btn-ghost" id="admin-refresh-btn" style="width:auto">一覧を更新</button>
-        </div>
-        <p class="hint error-text" id="admin-error"></p>
-        <div id="admin-body"></div>
-      </section>
-    </div>
   </main>
 
   <!-- 抽選ドック(抽選ボタンが画面外のときだけ下部に表示)。
@@ -309,5 +242,6 @@
   <script src="../lib/qrcode.js"></script>
   <script src="../js/common.js"></script>
   <script type="module" src="../js/online/host.js"></script>
+  <script type="module" src="../js/online/admin-link.js"></script>
 </body>
 </html>

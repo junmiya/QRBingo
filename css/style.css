@@ -385,6 +385,21 @@ a.tab[hidden] { display: none; }
   .top-menu .tab { padding: 11px 4px; font-size: .9rem; }
 }
 
+/* 共通メニュー欄外の「運営メニュー」(運営者ログイン時のみ) */
+.admin-link {
+  margin: -8px 4px 14px;
+  text-align: right;
+  font-size: .85rem;
+}
+.admin-link a {
+  color: var(--text-secondary);
+  font-weight: 700;
+  text-decoration: none;
+  border-bottom: 1px dashed var(--border);
+}
+.admin-link a:hover { color: var(--primary); border-color: var(--primary); }
+.admin-link[hidden] { display: none; }
+
 /* トップの「ゲームに参加する」(コード入力) */
 .join-card { cursor: default; }
 .join-card:hover { transform: none; }
@@ -461,19 +476,10 @@ label.hint { display: block; }
 
 /* ---------- ホスト画面: タブ・アカウント表示 ---------- */
 .tab { position: relative; }
-.tab-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  margin-left: 6px;
-  border-radius: 50%;
-  background: var(--success);
-  vertical-align: middle;
-  box-shadow: 0 0 0 2px var(--panel);
-}
-.tab-dot[hidden] { display: none; }
 
 .account-chip {
+  display: inline-block;
+  text-decoration: none;
   margin-top: 10px;
   padding: 6px 14px;
   width: auto;

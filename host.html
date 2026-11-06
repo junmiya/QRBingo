@@ -14,6 +14,13 @@
   </header>
 
   <main>
+    <!-- 共通メニュー(全ページ同じ)。運営は運営者ログイン時のみ欄外に表示 -->
+    <nav class="tabs top-menu site-nav" aria-label="メニュー">
+      <a class="tab" data-nav="online" href="index.html">オンライン</a>
+      <a class="tab active" data-nav="offline" href="index.html#offline" aria-current="page">オフライン</a>
+      <a class="tab" data-nav="mypage" href="online/mypage.html">マイページ</a>
+    </nav>
+
     <section class="panel" id="join-panel">
       <h2>参加用QRコード</h2>
       <div class="game-code" id="game-code"></div>

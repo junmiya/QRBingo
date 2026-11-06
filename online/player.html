@@ -14,6 +14,14 @@
   </header>
 
   <main>
+    <!-- 共通メニュー(全ページ同じ)。運営は運営者ログイン時のみ欄外に表示 -->
+    <nav class="tabs top-menu site-nav" aria-label="メニュー">
+      <a class="tab active" data-nav="online" href="../index.html" aria-current="page">オンライン</a>
+      <a class="tab" data-nav="offline" href="../index.html#offline">オフライン</a>
+      <a class="tab" data-nav="mypage" href="../online/mypage.html">マイページ</a>
+    </nav>
+    <p class="admin-link" id="admin-link" hidden><a href="../online/admin.html">運営メニュー</a></p>
+
     <p id="conn-status" class="hint" style="text-align:center">接続中…</p>
 
     <!-- ゲームコード入力(QR以外からの参加) -->
@@ -115,5 +123,6 @@
   <script src="../lib/qrcode.js"></script>
   <script src="../js/common.js"></script>
   <script type="module" src="../js/online/player.js"></script>
+  <script type="module" src="../js/online/admin-link.js"></script>
 </body>
 </html>

@@ -14,14 +14,13 @@
   </header>
 
   <main>
-    <!-- メニュー: オンライン / オフラインはこのページ内で切替。
-         マイページ・運営はホスト画面の該当タブを直接開く。運営は運営者ログイン時のみ表示 -->
-    <nav class="tabs top-menu" role="tablist" aria-label="メニュー">
-      <button class="tab active" data-tab="online" role="tab" aria-selected="true">オンライン</button>
-      <button class="tab" data-tab="offline" role="tab" aria-selected="false">オフライン</button>
-      <a class="tab" href="online/host.html?tab=mypage">マイページ</a>
-      <a class="tab" id="admin-menu" href="online/host.html?tab=admin" hidden>運営</a>
+    <!-- 共通メニュー(全ページ同じ)。運営は運営者ログイン時のみ欄外に表示 -->
+    <nav class="tabs top-menu site-nav" aria-label="メニュー">
+      <a class="tab active" data-nav="online" href="index.html" aria-current="page">オンライン</a>
+      <a class="tab" data-nav="offline" href="index.html#offline">オフライン</a>
+      <a class="tab" data-nav="mypage" href="online/mypage.html">マイページ</a>
     </nav>
+    <p class="admin-link" id="admin-link" hidden><a href="online/admin.html">運営メニュー</a></p>
 
     <!-- ===== オンライン ===== -->
     <div class="tab-panel" id="tab-online">
@@ -136,24 +135,29 @@
   </footer>
 
   <script>
-    // オンライン/オフラインの切替(#offline で直接開ける)
+    // 共通メニューの「オンライン」「オフライン」はこのページ内で切替(#offline で直接表示)
     (function () {
-      var tabs = document.querySelectorAll('.top-menu button.tab');
+      var links = document.querySelectorAll('.site-nav a[data-nav="online"], .site-nav a[data-nav="offline"]');
       function show(name) {
-        tabs.forEach(function (x) {
-          var on = x.dataset.tab === name;
-          x.classList.toggle('active', on);
-          x.setAttribute('aria-selected', on ? 'true' : 'false');
+        links.forEach(function (a) {
+          var on = a.dataset.nav === name;
+          a.classList.toggle('active', on);
+          if (on) a.setAttribute('aria-current', 'page');
+          else a.removeAttribute('aria-current');
         });
         document.querySelectorAll('.tab-panel').forEach(function (p) {
           p.hidden = p.id !== 'tab-' + name;
         });
       }
-      tabs.forEach(function (t) {
-        t.addEventListener('click', function () {
-          show(t.dataset.tab);
-          history.replaceState(null, '', t.dataset.tab === 'offline' ? '#offline' : location.pathname);
+      links.forEach(function (a) {
+        a.addEventListener('click', function (e) {
+          e.preventDefault();
+          show(a.dataset.nav);
+          history.replaceState(null, '', a.dataset.nav === 'offline' ? '#offline' : location.pathname);
         });
+      });
+      window.addEventListener('hashchange', function () {
+        show(location.hash === '#offline' ? 'offline' : 'online');
       });
       if (location.hash === '#offline') show('offline');
     })();
@@ -171,18 +175,6 @@
       location.href = 'online/player.html?g=' + encodeURIComponent(code);
     });
   </script>
-  <script type="module">
-    // 運営メニューは運営者ログイン時のみ表示(表示だけの制御。権限はサーバー側で検証)。
-    // onUser は状態を見るだけで、未ログインの訪問者に匿名アカウントは作らない。
-    const ADMIN_EMAILS = ['miyajun@gmail.com'];
-    import('./js/online/firebase-init.js')
-      .then(({ onUser }) =>
-        onUser((u) => {
-          const email = u && !u.isAnonymous && u.email ? u.email.toLowerCase() : '';
-          document.getElementById('admin-menu').hidden = !ADMIN_EMAILS.includes(email);
-        })
-      )
-      .catch(() => {});
-  </script>
+  <script type="module" src="js/online/admin-link.js"></script>
 </body>
 </html>

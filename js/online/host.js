@@ -3,9 +3,6 @@ import {
   ONLINE_AVAILABLE,
   ensureSignedIn,
   onUser,
-  linkGoogle,
-  linkEmail,
-  signOutHost,
   callable,
   watchGame,
   watchMyGames,
@@ -13,21 +10,15 @@ import {
   watchCollectionPath,
 } from './firebase-init.js';
 import { watchAnnouncements, initChat, fmtCountdown } from './live-extras.js';
+import { planSummary } from './plan.js';
 
 const $ = (id) => document.getElementById(id);
 const CURRENT_KEY = 'qrbingo:online:host:current';
 
 const createGameFn = callable('createGame');
-const createCheckoutFn = callable('createCheckout');
-const createConnectAccountFn = callable('createConnectAccount');
-const refreshConnectStatusFn = callable('refreshConnectStatus');
 const setChatEnabledFn = callable('setChatEnabled');
 const setCountdownFn = callable('setCountdown');
 const cancelGameFn = callable('cancelGame');
-const adminListGamesFn = callable('adminListGames');
-const adminPauseGameFn = callable('adminPauseGame');
-const adminEndGameFn = callable('adminEndGame');
-const ADMIN_EMAILS = ['miyajun@gmail.com'];
 const startGameFn = callable('startGame');
 const drawNumberFn = callable('drawNumber');
 const finishGameFn = callable('finishGame');
@@ -39,9 +30,7 @@ const ballColor = (n) => BALL_COLORS[Math.floor((n - 1) / 15)];
 
 let gameId = null;
 let myUid = null;
-let isAnon = true; // 課金・投げ銭受け取りはログイン必須(匿名では不可)
 let unwatchPlan = null;
-let unwatchConnect = null;
 let unwatchMyGames = null;
 let unwatch = null;
 let unwatchLeaderboard = null;
@@ -59,7 +48,6 @@ let hostCountdownTimer = null; // ホスト側カウントダウン表示の更�
 let chatCurrentlyEnabled = false;
 let latestMyGames = []; // 主催したゲーム(進行中ゲームへの「戻る」バナー用)
 let drawBtnVisible = true; // 抽選ボタンが画面内にあるか(ドック表示の判定)
-let pendingAdminTab = false; // ?tab=admin で開かれた(運営者確認後に運営タブへ)
 
 function esc(s) {
   return String(s).replace(/[&<>"']/g, (c) =>
@@ -74,27 +62,8 @@ function showPanel(name) {
     $(p).hidden = p !== name;
   }
   $('ops-panel').hidden = name !== 'playing-panel';
-  $('game-tab-dot').hidden = !(name === 'lobby-panel' || name === 'playing-panel');
   renderActiveBanner();
   syncDock();
-}
-
-// ---------- タブ(ゲーム / マイページ / 運営) ----------
-function setTab(name) {
-  document.querySelectorAll('#host-tabs button.tab').forEach((t) => {
-    const on = t.dataset.tab === name;
-    t.classList.toggle('active', on);
-    t.setAttribute('aria-selected', on ? 'true' : 'false');
-  });
-  document.querySelectorAll('.tab-panel').forEach((p) => {
-    p.hidden = p.id !== 'tab-' + name;
-  });
-  syncDock();
-}
-
-function currentTab() {
-  const t = document.querySelector('#host-tabs .tab.active');
-  return t ? t.dataset.tab : 'game';
 }
 
 function parseOptionalInt(value) {
@@ -123,115 +92,6 @@ async function handleCreate() {
   } finally {
     $('create-btn').disabled = false;
   }
-}
-
-// ---------- アップグレード(課金) ----------
-async function handleUpgrade(ev) {
-  const card = ev.target.closest('.plan-card[data-plan]');
-  if (!card) return;
-  const plan = card.dataset.plan;
-  $('upgrade-error').textContent = '';
-  if (isAnon) {
-    $('upgrade-error').textContent = '購入するには、マイページの「アカウント」からログインしてください（買ったプランを失わないため必須です）。';
-    $('account-panel').scrollIntoView({ behavior: 'smooth', block: 'center' });
-    return;
-  }
-  card.disabled = true;
-  try {
-    const res = await createCheckoutFn({ plan, origin: location.origin });
-    if (res && res.url) {
-      location.href = res.url; // Stripe の決済画面へ
-    } else {
-      $('upgrade-error').textContent = '決済ページを開けませんでした。';
-      card.disabled = false;
-    }
-  } catch (err) {
-    $('upgrade-error').textContent = err.message || String(err);
-    card.disabled = false;
-  }
-}
-
-// 決済からの戻り(?checkout=success|cancel)を検知して案内を出す。
-function showCheckoutBanner() {
-  const params = new URLSearchParams(location.search);
-  const state = params.get('checkout');
-  if (!state) return;
-  const banner = $('checkout-banner');
-  banner.hidden = false;
-  if (state === 'success') {
-    banner.className = 'checkout-banner ok';
-    banner.textContent = 'ご購入ありがとうございます。プランへの反映まで数十秒かかる場合があります(自動更新されます)。';
-  } else {
-    banner.className = 'checkout-banner';
-    banner.textContent = '決済はキャンセルされました。';
-  }
-  // URL から checkout パラメータを消す(リロードで再表示しない)
-  params.delete('checkout');
-  const q = params.toString();
-  history.replaceState(null, '', location.pathname + (q ? '?' + q : ''));
-}
-
-// ---------- 投げ銭の受け取り設定(Stripe Connect) ----------
-function renderConnect(acct) {
-  const text = $('connect-status-text');
-  const btn = $('connect-btn');
-  if (acct && acct.chargesEnabled) {
-    text.textContent = '受け取り可能です。作成したゲームで参加者から投げ銭を受け取れます。';
-    btn.hidden = true;
-  } else if (acct && acct.stripeAccountId) {
-    text.textContent = '接続手続きが未完了です。続きから設定してください。';
-    btn.hidden = false;
-    btn.textContent = '接続手続きを続ける';
-  } else {
-    text.textContent = 'まだ接続されていません。投げ銭を受け取るには Stripe で口座を接続してください。';
-    btn.hidden = false;
-    btn.textContent = 'Stripeで受け取り口座を接続';
-  }
-}
-
-async function handleConnect() {
-  $('connect-error').textContent = '';
-  if (isAnon) {
-    $('connect-error').textContent = '投げ銭を受け取るには、マイページの「アカウント」からログインしてください（受取設定を端末間で保持するため必須です）。';
-    $('account-panel').scrollIntoView({ behavior: 'smooth', block: 'center' });
-    return;
-  }
-  $('connect-btn').disabled = true;
-  try {
-    const res = await createConnectAccountFn({ origin: location.origin });
-    if (res && res.url) {
-      location.href = res.url; // Stripe のオンボーディングへ
-    } else {
-      $('connect-error').textContent = '接続ページを開けませんでした。';
-      $('connect-btn').disabled = false;
-    }
-  } catch (err) {
-    $('connect-error').textContent = err.message || String(err);
-    $('connect-btn').disabled = false;
-  }
-}
-
-// オンボーディングからの戻り(?connect=return|refresh)で最新状態を取得する。
-async function handleConnectReturn() {
-  const state = new URLSearchParams(location.search).get('connect');
-  if (!state) return;
-  const banner = $('connect-banner');
-  try {
-    const res = await refreshConnectStatusFn({});
-    banner.hidden = false;
-    if (res && res.chargesEnabled) {
-      banner.className = 'checkout-banner ok';
-      banner.textContent = '接続が完了しました。投げ銭を受け取れます。';
-    } else {
-      banner.className = 'checkout-banner';
-      banner.textContent = '接続はまだ完了していません。手続きを最後まで進めてください。';
-    }
-  } catch (e) {
-    /* 状態は購読で反映される */
-  }
-  const url = new URL(location.href);
-  url.searchParams.delete('connect');
-  history.replaceState(null, '', url.toString());
 }
 
 // ---------- ライブ機能(チャット切替・カウントダウン) ----------
@@ -328,7 +188,6 @@ function attachToGame(id) {
   gameId = id;
   QRB.saveJSON(CURRENT_KEY, { gameId });
   attachWatcher();
-  setTab('game');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -452,7 +311,7 @@ function renderHistory(draws) {
 // 画面下部に「直近の番号+抽選する!」を表示する。状態は本体の抽選ボタンに合わせる。
 function syncDock() {
   const dock = $('draw-dock');
-  const show = gameStatus === 'playing' && currentTab() === 'game' && !drawBtnVisible;
+  const show = gameStatus === 'playing' && !drawBtnVisible;
   dock.hidden = !show;
   if (!show) return;
   const n = $('current-ball').querySelector('.ball-number');
@@ -793,16 +652,6 @@ $('active-game-back').addEventListener('click', () => {
   const id = $('active-game-banner').dataset.id;
   if (id) attachToGame(id);
 });
-document.querySelectorAll('#host-tabs button.tab').forEach((t) =>
-  t.addEventListener('click', () => setTab(t.dataset.tab))
-);
-$('account-chip').addEventListener('click', () => setTab('mypage'));
-document.querySelectorAll('.go-mypage').forEach((a) =>
-  a.addEventListener('click', (e) => {
-    e.preventDefault();
-    setTab('mypage');
-  })
-);
 if ('IntersectionObserver' in window) {
   new IntersectionObserver((entries) => {
     drawBtnVisible = entries[entries.length - 1].isIntersecting;
@@ -812,14 +661,6 @@ if ('IntersectionObserver' in window) {
 $('cancel-lobby-btn').addEventListener('click', handleCancel);
 $('cancel-playing-btn').addEventListener('click', handleCancel);
 $('mygames-body').addEventListener('click', handleMyGamesClick);
-$('admin-refresh-btn').addEventListener('click', loadAdminGames);
-$('admin-body').addEventListener('click', handleAdminClick);
-$('upgrade-plans').addEventListener('click', handleUpgrade);
-$('connect-btn').addEventListener('click', handleConnect);
-$('login-btn').addEventListener('click', handleLogin);
-$('logout-btn').addEventListener('click', handleLogout);
-$('email-login-btn').addEventListener('click', handleEmailLogin);
-$('login-pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') handleEmailLogin(); });
 document.querySelectorAll('.chat-toggle').forEach((b) => b.addEventListener('click', handleChatToggle));
 $('countdown-start').addEventListener('click', handleCountdownStart);
 $('countdown-stop').addEventListener('click', handleCountdownStop);
@@ -837,26 +678,11 @@ $('countdown-stop').addEventListener('click', handleCountdownStop);
   const user = await ensureSignedIn();
   myUid = user.uid;
   $('conn-status').hidden = true;
-  $('host-tabs').hidden = false;
+  $('host-main').hidden = false;
   $('account-chip').hidden = false;
-  // 決済・口座接続から戻ったとき、またはトップの「マイページ」からはマイページを開く。
-  // トップの「運営」(?tab=admin)は運営者と確認できてから開く(updateAdminMode)。
-  const qs = new URLSearchParams(location.search);
-  const wantTab = qs.get('tab');
-  pendingAdminTab = wantTab === 'admin';
-  setTab(qs.has('checkout') || qs.has('connect') || wantTab === 'mypage' ? 'mypage' : 'game');
-  if (wantTab) {
-    qs.delete('tab');
-    const q = qs.toString();
-    history.replaceState(null, '', location.pathname + (q ? '?' + q : ''));
-  }
 
-  // 決済からの戻り(?checkout=success|cancel)の案内
-  showCheckoutBanner();
-  // 投げ銭 Connect オンボーディングからの戻り(?connect=...)
-  handleConnectReturn();
-
-  // 認証状態(匿名/Google/メール)を購読。UIDが変わったらプラン・接続状態を購読し直す。
+  // 認証状態(匿名/Google/メール)を購読。UIDが変わったらプラン・主催ゲームを購読し直す。
+  // (ログインはマイページで行う。別ページでのログインもここに反映される)
   onUser(applyUser);
 
   const saved = QRB.loadJSON(CURRENT_KEY, null);
@@ -868,222 +694,32 @@ $('countdown-stop').addEventListener('click', handleCountdownStop);
   }
 })();
 
-// ---------- アカウント(ログイン) ----------
-// 認証状態を画面に反映する。匿名アカウントをそのまま昇格(link)した場合は UID が
-// 変わらないため onAuthStateChanged が発火しない。ログイン成功時にも直接呼ぶ。
+// ---------- アカウント状態・プラン ----------
 let lastUid = null;
 function applyUser(u) {
-  if (!u) return; // ログアウト直後(reload で匿名に入り直す)
+  if (!u) return;
   myUid = u.uid;
-  renderAuth(u);
-  updateAdminMode(u);
+  const chip = $('account-chip');
+  chip.textContent = u.isAnonymous ? 'ゲスト(未ログイン)' : u.email || u.displayName || 'ログイン中';
+  chip.classList.toggle('signed-in', !u.isAnonymous);
   if (u.uid !== lastUid) {
     lastUid = u.uid;
     resubscribeHostDocs(u.uid);
   }
 }
 
-function renderAuth(user) {
-  isAnon = !user || user.isAnonymous;
-  const chip = $('account-chip');
-  chip.textContent = isAnon ? 'ゲスト(未ログイン)' : user.email || user.displayName || 'ログイン中';
-  chip.classList.toggle('signed-in', !isAnon);
-  const status = $('account-status');
-  const loginBtn = $('login-btn');
-  const logoutBtn = $('logout-btn');
-  if (isAnon) {
-    status.innerHTML =
-      '未ログインです。<strong>プラン購入・投げ銭の受け取りにはログインが必要</strong>です。';
-    loginBtn.hidden = false;
-    logoutBtn.hidden = true;
-    $('email-login').hidden = false;
-  } else {
-    const who = user.email || user.displayName || 'ログイン済み';
-    status.innerHTML = `ログイン中: <strong>${esc(who)}</strong>(プランは端末をまたいで引き継がれます)`;
-    loginBtn.hidden = true;
-    logoutBtn.hidden = false;
-    $('email-login').hidden = true;
-  }
-  // ログインが必要な操作(プラン購入・投げ銭の受け取り)は、ログイン後のみUIを表示
-  document.querySelectorAll('.login-gated').forEach((el) => {
-    el.hidden = isAnon;
-  });
-  document.querySelectorAll('.anon-only').forEach((el) => {
-    el.hidden = !isAnon;
-  });
-}
-
-async function handleEmailLogin() {
-  $('account-error').textContent = '';
-  const email = ($('login-email').value || '').trim();
-  const pass = $('login-pass').value || '';
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-    $('account-error').textContent = 'メールアドレスの形式が正しくありません。';
-    return;
-  }
-  if (pass.length < 6) {
-    $('account-error').textContent = 'パスワードは6文字以上で入力してください。';
-    return;
-  }
-  $('email-login-btn').disabled = true;
-  try {
-    applyUser(await linkEmail(email, pass));
-    $('login-pass').value = '';
-  } catch (err) {
-    const code = String((err && err.code) || '');
-    if (code.includes('wrong-password') || code.includes('invalid-credential')) {
-      $('account-error').textContent = 'パスワードが違います(既に登録済みのメールの場合)。';
-    } else if (code.includes('weak-password')) {
-      $('account-error').textContent = 'パスワードが弱すぎます。6文字以上にしてください。';
-    } else {
-      $('account-error').textContent = err.message || String(err);
-    }
-  } finally {
-    $('email-login-btn').disabled = false;
-  }
-}
-
-async function handleLogin() {
-  $('account-error').textContent = '';
-  $('login-btn').disabled = true;
-  try {
-    applyUser(await linkGoogle());
-  } catch (err) {
-    const code = String((err && err.code) || '');
-    if (code.includes('popup-closed') || code.includes('cancelled')) {
-      $('account-error').textContent = 'ログインがキャンセルされました。';
-    } else {
-      $('account-error').textContent = err.message || String(err);
-    }
-  } finally {
-    $('login-btn').disabled = false;
-  }
-}
-
-async function handleLogout() {
-  if (!confirm('ログアウトしますか?\n(このゲーム表示はリセットされ、匿名に戻ります)')) return;
-  try {
-    localStorage.removeItem(CURRENT_KEY);
-    await signOutHost();
-    location.reload(); // 匿名で入り直す
-  } catch (err) {
-    $('account-error').textContent = err.message || String(err);
-  }
-}
-
-// ログインUID変更時に、そのUIDのプラン・投げ銭接続状態を購読し直す。
+// UID ごとのプラン(作成フォームの上限表示)と主催ゲーム一覧を購読し直す。
 function resubscribeHostDocs(uid) {
   if (unwatchPlan) unwatchPlan();
   unwatchPlan = watchDocPath(['entitlements', uid], renderPlan);
-  if (unwatchConnect) unwatchConnect();
-  unwatchConnect = watchDocPath(['hostAccounts', uid], renderConnect);
   if (unwatchMyGames) unwatchMyGames();
   unwatchMyGames = watchMyGames(uid, renderMyGames);
 }
 
-// ---------- 運営モード(全ゲーム管理) ----------
-const ADMIN_STATUS = {
-  lobby: '受付中',
-  playing: '進行中',
-  finished: '終了',
-  expired: '中止',
-};
-
-async function loadAdminGames() {
-  $('admin-error').textContent = '';
-  $('admin-refresh-btn').disabled = true;
-  try {
-    const res = await adminListGamesFn({});
-    renderAdminGames((res && res.games) || []);
-  } catch (err) {
-    $('admin-error').textContent = err.message || String(err);
-  } finally {
-    $('admin-refresh-btn').disabled = false;
-  }
-}
-
-function renderAdminGames(games) {
-  if (!games.length) {
-    $('admin-body').innerHTML = '<p class="hint">ゲームはありません。</p>';
-    return;
-  }
-  const rows = games
-    .map((g) => {
-      const active = g.status === 'lobby' || g.status === 'playing';
-      const label = ADMIN_STATUS[g.status] || g.status;
-      const pauseLabel = g.paused ? '再開' : '一時停止';
-      const pauseBtn = active
-        ? `<button data-aact="pause" data-id="${g.gameId}" data-paused="${g.paused ? '1' : '0'}">${pauseLabel}</button>`
-        : '';
-      const endBtn = active ? `<button data-aact="end" data-id="${g.gameId}">終了</button>` : '';
-      const st = label + (g.paused ? '(停止中)' : '');
-      return `<tr>
-        <td><strong>${esc(g.gameId)}</strong></td>
-        <td>${st}</td>
-        <td>${g.participantCount}人 / ${g.drawsCount}球</td>
-        <td><div class="row-actions">${pauseBtn}${endBtn}</div></td>
-      </tr>`;
-    })
-    .join('');
-  $('admin-body').innerHTML =
-    `<table class="leaderboard"><thead><tr>
-       <th>コード</th><th>状態</th><th>参加/抽選</th><th></th>
-     </tr></thead><tbody>${rows}</tbody></table>`;
-}
-
-async function handleAdminClick(ev) {
-  const btn = ev.target.closest('button[data-aact]');
-  if (!btn) return;
-  const id = btn.dataset.id;
-  btn.disabled = true;
-  try {
-    if (btn.dataset.aact === 'pause') {
-      const toPaused = btn.dataset.paused !== '1';
-      await adminPauseGameFn({ gameId: id, paused: toPaused });
-    } else if (btn.dataset.aact === 'end') {
-      if (!confirm(`【運営】ゲーム ${id} を強制終了しますか?\n順位は確定されず、参加者の画面も「終了」になります。\nこの操作は取り消せません。`)) {
-        btn.disabled = false;
-        return;
-      }
-      await adminEndGameFn({ gameId: id });
-    }
-    await loadAdminGames(); // 反映後に一覧を更新
-  } catch (err) {
-    $('admin-error').textContent = err.message || String(err);
-    btn.disabled = false;
-  }
-}
-
-function updateAdminMode(user) {
-  const email = (user && user.email ? String(user.email) : '').toLowerCase();
-  const isAdmin = !user.isAnonymous && ADMIN_EMAILS.includes(email);
-  $('admin-tab').hidden = !isAdmin;
-  if (!isAdmin && currentTab() === 'admin') setTab('game');
-  if (isAdmin && pendingAdminTab) setTab('admin');
-  pendingAdminTab = false;
-  if (isAdmin) loadAdminGames();
-}
-
-// ---------- 課金プラン表示 ----------
-const FREE_MAX_PLAYERS = 20;
 function renderPlan(ent) {
-  let maxPlayers = FREE_MAX_PLAYERS;
-  let label = '無料プラン';
-  if (ent && Number.isInteger(ent.maxPlayers) && ent.maxPlayers > 0) {
-    const validMs = ent.validUntil && ent.validUntil.toMillis ? ent.validUntil.toMillis() : null;
-    const expired = validMs != null && validMs < Date.now();
-    if (!expired) {
-      maxPlayers = ent.maxPlayers;
-      label = `${ent.plan || '有料'}プラン`;
-    }
-  }
-  const badgeText =
-    label === '無料プラン'
-      ? `現在のプラン: 無料(1ゲーム最大 ${maxPlayers} 人)`
-      : `現在のプラン: ${label}(1ゲーム最大 ${maxPlayers} 人)`;
+  const plan = planSummary(ent);
   $('plan-badge').hidden = false;
-  $('plan-badge').textContent = badgeText;
-  $('plan-badge-mypage').textContent = badgeText;
-  $('capacity-hint').textContent = `(最大 ${maxPlayers} 人・空欄で上限まで)`;
-  $('in-capacity').setAttribute('placeholder', `最大 ${maxPlayers}`);
+  $('plan-badge').textContent = plan.text;
+  $('capacity-hint').textContent = `(最大 ${plan.maxPlayers} 人・空欄で上限まで)`;
+  $('in-capacity').setAttribute('placeholder', `最大 ${plan.maxPlayers}`);
 }

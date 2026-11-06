@@ -79,8 +79,8 @@ exports.createConnectAccount = onCall({ secrets: [STRIPE_SECRET_KEY] }, async (r
     const base = baseUrl(request.data && request.data.origin);
     const link = await stripe.accountLinks.create({
       account: accountId,
-      refresh_url: `${base}/online/host.html?connect=refresh`,
-      return_url: `${base}/online/host.html?connect=return`,
+      refresh_url: `${base}/online/mypage.html?connect=refresh`,
+      return_url: `${base}/online/mypage.html?connect=return`,
       type: 'account_onboarding',
     });
     return { url: link.url };

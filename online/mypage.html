@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>マイページ - QRBingo</title>
+  <link rel="icon" href="../img/favicon.svg">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <header class="app-header">
+    <h1 class="logo"><a href="../index.html"><img src="../img/logo.svg" alt="QRBingo" width="264" height="80"></a></h1>
+    <p class="tagline">マイページ — アカウント・プラン・投げ銭の受け取り</p>
+  </header>
+
+  <main>
+    <!-- 共通メニュー(全ページ同じ)。運営は運営者ログイン時のみ欄外に表示 -->
+    <nav class="tabs top-menu site-nav" aria-label="メニュー">
+      <a class="tab" data-nav="online" href="../index.html">オンライン</a>
+      <a class="tab" data-nav="offline" href="../index.html#offline">オフライン</a>
+      <a class="tab active" data-nav="mypage" href="../online/mypage.html" aria-current="page">マイページ</a>
+    </nav>
+    <p class="admin-link" id="admin-link" hidden><a href="../online/admin.html">運営メニュー</a></p>
+
+    <p id="conn-status" class="hint" style="text-align:center">接続中…</p>
+    <div id="mypage-main" hidden>
+      <!-- アカウント -->
+      <section class="panel" id="account-panel">
+        <h2>アカウント</h2>
+        <p class="hint" id="account-status">確認中…</p>
+        <div class="btn-row" style="margin-top:8px">
+          <button class="btn-primary" id="login-btn" hidden>Googleでログイン</button>
+          <button class="btn-ghost" id="logout-btn" hidden>ログアウト</button>
+        </div>
+
+        <div id="email-login" hidden style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border)">
+          <label class="hint">またはメール/パスワードでログイン(初回は自動で登録)</label>
+          <div style="display:flex; gap:8px; margin-top:6px; flex-wrap:wrap">
+            <input type="email" id="login-email" placeholder="メールアドレス" autocomplete="username" style="flex:1; min-width:180px; text-transform:none">
+          </div>
+          <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap">
+            <input type="password" id="login-pass" placeholder="パスワード(6文字以上)" autocomplete="current-password" style="flex:1; min-width:180px; text-transform:none">
+            <button class="btn-ghost" id="email-login-btn" style="width:auto">ログイン / 登録</button>
+          </div>
+        </div>
+
+        <p class="hint">参加者はログイン不要です。ログインが必要なのは<strong>プラン購入・投げ銭の受け取りをする主催者</strong>だけ。ログインするとプランや設定が端末をまたいで引き継がれます。</p>
+        <p class="hint">ログイン・購入をもって <a href="../legal/terms.html" target="_blank" rel="noopener">利用規約</a>・<a href="../legal/privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a>・<a href="../legal/tokushoho.html" target="_blank" rel="noopener">特商法表記</a> に同意したものとみなします。</p>
+        <p class="hint error-text" id="account-error"></p>
+      </section>
+
+      <!-- プラン -->
+      <section class="panel" id="plan-panel">
+        <h2>プラン</h2>
+        <p class="plan-badge" id="plan-badge-mypage"></p>
+        <p class="checkout-banner" id="checkout-banner" hidden></p>
+        <p class="hint gated-note anon-only">ログインすると、参加人数を増やすプランを購入できます。</p>
+        <div class="login-gated" hidden>
+          <p class="hint">購入すると1ゲームの参加上限が上がります。決済は Stripe(安全な外部決済)で行われ、カード情報はこのサイトには保存されません。</p>
+          <div class="plan-grid" id="upgrade-plans">
+            <button class="plan-card" data-plan="onetime_300" type="button">
+              <b>都度 300人</b><span class="plan-price">¥1,000</span><span class="hint">30日間</span>
+            </button>
+            <button class="plan-card" data-plan="onetime_1000" type="button">
+              <b>都度 1000人</b><span class="plan-price">¥3,000</span><span class="hint">30日間</span>
+            </button>
+            <button class="plan-card" data-plan="annual_300" type="button">
+              <b>年 300人</b><span class="plan-price">¥3,000</span><span class="hint">365日間</span>
+            </button>
+            <button class="plan-card" data-plan="annual_1000" type="button">
+              <b>年 1000人</b><span class="plan-price">¥10,000</span><span class="hint">365日間</span>
+            </button>
+          </div>
+          <p class="hint">1000人を超えるプランは個別対応します。お問い合わせください。</p>
+        </div>
+        <p class="hint error-text" id="upgrade-error"></p>
+      </section>
+
+      <!-- 投げ銭の受け取り設定(Stripe Connect・ホスト単位) -->
+      <section class="panel" id="tips-setup-panel">
+        <h2>投げ銭の受け取り設定</h2>
+        <p class="checkout-banner" id="connect-banner" hidden></p>
+        <p class="hint gated-note anon-only">ログインすると、参加者からの投げ銭(応援)を受け取る口座を設定できます。未設定の場合、投げ銭は運営の収益になります。</p>
+        <div class="login-gated" hidden>
+          <p class="hint" id="connect-status-text">確認中…</p>
+          <div class="btn-row" style="margin-top:8px">
+            <button class="btn-primary" id="connect-btn" hidden>Stripeで受け取り口座を接続</button>
+          </div>
+          <p class="hint">接続すると、あなたが作成したゲームの参加者から「投げ銭(応援)」を受け取れます。運営手数料は50%、Stripe手数料は運営が負担します。入金・本人確認は Stripe が行います。</p>
+        </div>
+        <p class="hint error-text" id="connect-error"></p>
+      </section>
+    </div>
+
+  </main>
+
+  <footer class="app-footer">
+    QRBingo オンラインモード — リアルタイム配信ビンゴ
+    <br>
+    <a href="../index.html">トップ</a> ・
+    <a href="../legal/tokushoho.html">特定商取引法に基づく表記</a> ・
+    <a href="../legal/terms.html">利用規約</a> ・
+    <a href="../legal/privacy.html">プライバシーポリシー</a>
+  </footer>
+
+  <script type="module" src="../js/online/mypage.js"></script>
+  <script type="module" src="../js/online/admin-link.js"></script>
+</body>
+</html>
