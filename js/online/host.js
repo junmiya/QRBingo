@@ -59,6 +59,7 @@ let hostCountdownTimer = null; // ホスト側カウントダウン表示の更�
 let chatCurrentlyEnabled = false;
 let latestMyGames = []; // 主催したゲーム(進行中ゲームへの「戻る」バナー用)
 let drawBtnVisible = true; // 抽選ボタンが画面内にあるか(ドック表示の判定)
+let pendingAdminTab = false; // ?tab=admin で開かれた(運営者確認後に運営タブへ)
 
 function esc(s) {
   return String(s).replace(/[&<>"']/g, (c) =>
@@ -838,27 +839,25 @@ $('countdown-stop').addEventListener('click', handleCountdownStop);
   $('conn-status').hidden = true;
   $('host-tabs').hidden = false;
   $('account-chip').hidden = false;
-  // 決済・口座接続から戻ったときはマイページを開く(結果バナーがそこにあるため)
+  // 決済・口座接続から戻ったとき、またはトップの「マイページ」からはマイページを開く。
+  // トップの「運営」(?tab=admin)は運営者と確認できてから開く(updateAdminMode)。
   const qs = new URLSearchParams(location.search);
-  setTab(qs.has('checkout') || qs.has('connect') ? 'mypage' : 'game');
+  const wantTab = qs.get('tab');
+  pendingAdminTab = wantTab === 'admin';
+  setTab(qs.has('checkout') || qs.has('connect') || wantTab === 'mypage' ? 'mypage' : 'game');
+  if (wantTab) {
+    qs.delete('tab');
+    const q = qs.toString();
+    history.replaceState(null, '', location.pathname + (q ? '?' + q : ''));
+  }
 
   // 決済からの戻り(?checkout=success|cancel)の案内
   showCheckoutBanner();
   // 投げ銭 Connect オンボーディングからの戻り(?connect=...)
   handleConnectReturn();
 
-  // 認証状態(匿名/Google)を購読。UIDが変わったらプラン・接続状態を購読し直す。
-  let lastUid = null;
-  onUser((u) => {
-    if (!u) return; // ログアウト直後(reload で匿名に入り直す)
-    myUid = u.uid;
-    renderAuth(u);
-    updateAdminMode(u);
-    if (u.uid !== lastUid) {
-      lastUid = u.uid;
-      resubscribeHostDocs(u.uid);
-    }
-  });
+  // 認証状態(匿名/Google/メール)を購読。UIDが変わったらプラン・接続状態を購読し直す。
+  onUser(applyUser);
 
   const saved = QRB.loadJSON(CURRENT_KEY, null);
   if (saved && saved.gameId) {
@@ -870,6 +869,20 @@ $('countdown-stop').addEventListener('click', handleCountdownStop);
 })();
 
 // ---------- アカウント(ログイン) ----------
+// 認証状態を画面に反映する。匿名アカウントをそのまま昇格(link)した場合は UID が
+// 変わらないため onAuthStateChanged が発火しない。ログイン成功時にも直接呼ぶ。
+let lastUid = null;
+function applyUser(u) {
+  if (!u) return; // ログアウト直後(reload で匿名に入り直す)
+  myUid = u.uid;
+  renderAuth(u);
+  updateAdminMode(u);
+  if (u.uid !== lastUid) {
+    lastUid = u.uid;
+    resubscribeHostDocs(u.uid);
+  }
+}
+
 function renderAuth(user) {
   isAnon = !user || user.isAnonymous;
   const chip = $('account-chip');
@@ -914,9 +927,8 @@ async function handleEmailLogin() {
   }
   $('email-login-btn').disabled = true;
   try {
-    await linkEmail(email, pass);
+    applyUser(await linkEmail(email, pass));
     $('login-pass').value = '';
-    // 認証状態は onUser 購読で反映される
   } catch (err) {
     const code = String((err && err.code) || '');
     if (code.includes('wrong-password') || code.includes('invalid-credential')) {
@@ -935,8 +947,7 @@ async function handleLogin() {
   $('account-error').textContent = '';
   $('login-btn').disabled = true;
   try {
-    await linkGoogle();
-    // 認証状態は onUser 購読で反映される
+    applyUser(await linkGoogle());
   } catch (err) {
     const code = String((err && err.code) || '');
     if (code.includes('popup-closed') || code.includes('cancelled')) {
@@ -1048,6 +1059,8 @@ function updateAdminMode(user) {
   const isAdmin = !user.isAnonymous && ADMIN_EMAILS.includes(email);
   $('admin-tab').hidden = !isAdmin;
   if (!isAdmin && currentTab() === 'admin') setTab('game');
+  if (isAdmin && pendingAdminTab) setTab('admin');
+  pendingAdminTab = false;
   if (isAdmin) loadAdminGames();
 }
 

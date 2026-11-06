@@ -14,16 +14,33 @@
   </header>
 
   <main>
-    <!-- はじめる(オンライン版が基本) -->
+    <!-- メニュー: オンライン / オフラインはこのページ内で切替。
+         マイページ・運営はホスト画面の該当タブを直接開く。運営は運営者ログイン時のみ表示 -->
+    <nav class="tabs top-menu" role="tablist" aria-label="メニュー">
+      <button class="tab active" data-tab="online" role="tab" aria-selected="true">オンライン</button>
+      <button class="tab" data-tab="offline" role="tab" aria-selected="false">オフライン</button>
+      <a class="tab" href="online/host.html?tab=mypage">マイページ</a>
+      <a class="tab" id="admin-menu" href="online/host.html?tab=admin" hidden>運営</a>
+    </nav>
+
+    <!-- ===== オンライン ===== -->
+    <div class="tab-panel" id="tab-online">
+    <!-- はじめる -->
     <section class="choice-grid" aria-label="はじめる">
       <a class="big-choice primary" href="online/host.html">
         ゲームを主催する
         <small>参加用QRを画面に映して、抽選ボタンを押すだけ。20人まで無料</small>
       </a>
-      <a class="big-choice" href="online/player.html">
-        ゲームに参加する
-        <small>QRコードを読むか、ゲームコードを入力。ログイン不要</small>
-      </a>
+      <form class="big-choice join-card" id="join-form" action="online/player.html" method="get" novalidate>
+        <label for="join-code">ゲームに参加する</label>
+        <small>配信画面などに表示されたゲームコードを入力。ログイン不要</small>
+        <div class="join-row">
+          <input type="text" id="join-code" name="g" placeholder="例: ABCD" maxlength="8" autocomplete="off" autocapitalize="characters" inputmode="text" aria-describedby="join-error">
+          <button class="btn-primary" type="submit">参加</button>
+        </div>
+        <small class="error-text" id="join-error" role="alert"></small>
+        <small>QRコードを読み取った場合は、そのまま参加画面が開きます</small>
+      </form>
     </section>
 
     <!-- 特長 -->
@@ -62,21 +79,10 @@
       <p class="hint">購入はホスト画面の<strong>「マイページ」</strong>から(Google またはメールでログインが必要)。1,000人を超える場合は<a href="https://aiueon.io/contact" target="_blank" rel="noopener">お問い合わせ</a>ください。</p>
     </section>
 
-    <!-- オフライン版 -->
+    <!-- あそびかた(オンライン) -->
     <section class="panel">
-      <h2>ネットなしで遊ぶ(オフライン版)</h2>
-      <p class="hint">同じ会場でホストが番号を読み上げ、参加者が各自タップでマークする方式。サーバーもログインも不要で、通信が不安定な会場でも遊べます。</p>
-      <div class="link-row">
-        <a class="link-btn" href="host.html">オフラインで主催する</a>
-        <a class="link-btn" href="player.html">オフラインで参加する</a>
-      </div>
-    </section>
-
-    <!-- あそびかた -->
-    <section class="panel">
-      <h2>あそびかた</h2>
       <details class="fold">
-        <summary>オンライン版</summary>
+        <summary>あそびかた(オンライン版)</summary>
         <ol class="howto-list" style="margin-top:12px">
           <li><strong>主催者</strong>が「ゲームを主催する」でゲームを作成すると、参加用<strong>QRコード</strong>とゲームコード(4文字)が出ます。TVや配信画面に映してください。</li>
           <li><strong>参加者</strong>はスマホでQRを読み取る(またはゲームコードを入力)と、ニックネームを入れるだけで自分のカードが届きます。</li>
@@ -86,8 +92,30 @@
         </ol>
         <p class="hint">チャット・開始カウントダウンは、作成時の「詳細設定」で選べます。主催者が受け取り設定をしていれば、参加者は投げ銭(応援)も送れます(勝敗には無関係)。</p>
       </details>
-      <details class="fold" style="margin-top:10px">
-        <summary>オフライン版</summary>
+    </section>
+    </div>
+
+    <!-- ===== オフライン ===== -->
+    <div class="tab-panel" id="tab-offline" hidden>
+    <section class="choice-grid" aria-label="オフラインではじめる">
+      <a class="big-choice primary" href="host.html">
+        オフラインで主催する
+        <small>QRでカードを配り、番号を読み上げて進行。ビンゴのカードをその場で確認できます</small>
+      </a>
+      <a class="big-choice" href="player.html">
+        オフラインで参加する
+        <small>QRを読み取るとカードが表示。呼ばれた番号を自分でタップしてマーク</small>
+      </a>
+    </section>
+
+    <section class="panel">
+      <h2>ネットなしで遊ぶ(会場向け)</h2>
+      <p class="hint">同じ会場でホストが番号を読み上げ、参加者が各自タップでマークする方式です。<strong>サーバーもログインも不要・無料</strong>。カード配布のQR読み取り以降はネット接続なしで進行できるので、通信が不安定な会場でも遊べます。</p>
+    </section>
+
+    <section class="panel">
+      <details class="fold">
+        <summary>あそびかた(オフライン版)</summary>
         <ol class="howto-list" style="margin-top:12px">
           <li><strong>主催者</strong>が「オフラインで主催する」でゲームを作成し、参加用QRコードを会場のスクリーンや紙で共有します。</li>
           <li><strong>参加者</strong>はスマホでQRを読み取ると、自分のビンゴカードが表示されます。</li>
@@ -96,6 +124,7 @@
         </ol>
       </details>
     </section>
+    </div>
   </main>
 
   <footer class="app-footer">
@@ -105,5 +134,55 @@
     <a href="legal/terms.html">利用規約</a> ・
     <a href="legal/privacy.html">プライバシーポリシー</a>
   </footer>
+
+  <script>
+    // オンライン/オフラインの切替(#offline で直接開ける)
+    (function () {
+      var tabs = document.querySelectorAll('.top-menu button.tab');
+      function show(name) {
+        tabs.forEach(function (x) {
+          var on = x.dataset.tab === name;
+          x.classList.toggle('active', on);
+          x.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+        document.querySelectorAll('.tab-panel').forEach(function (p) {
+          p.hidden = p.id !== 'tab-' + name;
+        });
+      }
+      tabs.forEach(function (t) {
+        t.addEventListener('click', function () {
+          show(t.dataset.tab);
+          history.replaceState(null, '', t.dataset.tab === 'offline' ? '#offline' : location.pathname);
+        });
+      });
+      if (location.hash === '#offline') show('offline');
+    })();
+
+    // ゲームコードで参加(4〜8文字の英数字)→ プレイヤー画面へ
+    document.getElementById('join-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var input = document.getElementById('join-code');
+      var code = String(input.value || '').trim().toUpperCase();
+      if (!/^[A-Z0-9]{4,8}$/.test(code)) {
+        document.getElementById('join-error').textContent = 'ゲームコード(英数字4〜8文字)を入力してください';
+        input.focus();
+        return;
+      }
+      location.href = 'online/player.html?g=' + encodeURIComponent(code);
+    });
+  </script>
+  <script type="module">
+    // 運営メニューは運営者ログイン時のみ表示(表示だけの制御。権限はサーバー側で検証)。
+    // onUser は状態を見るだけで、未ログインの訪問者に匿名アカウントは作らない。
+    const ADMIN_EMAILS = ['miyajun@gmail.com'];
+    import('./js/online/firebase-init.js')
+      .then(({ onUser }) =>
+        onUser((u) => {
+          const email = u && !u.isAnonymous && u.email ? u.email.toLowerCase() : '';
+          document.getElementById('admin-menu').hidden = !ADMIN_EMAILS.includes(email);
+        })
+      )
+      .catch(() => {});
+  </script>
 </body>
 </html>

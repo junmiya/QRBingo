@@ -371,6 +371,40 @@ button:focus-visible { outline: 3px solid var(--ring); outline-offset: 2px; }
 
 details.fold > summary { font-size: 1rem; }
 
+/* トップのメニュー(ボタンとリンクを同じ見た目に) */
+a.tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  text-decoration: none;
+}
+a.tab[hidden] { display: none; }
+@media (max-width: 480px) {
+  .top-menu { gap: 4px; padding: 4px; }
+  .top-menu .tab { padding: 11px 4px; font-size: .9rem; }
+}
+
+/* トップの「ゲームに参加する」(コード入力) */
+.join-card { cursor: default; }
+.join-card:hover { transform: none; }
+.join-card label { display: block; font-weight: 800; font-size: 1.15rem; color: var(--text); }
+.join-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.join-row input {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  letter-spacing: .12em;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.join-row .btn-primary { width: auto; flex-shrink: 0; padding: 12px 22px; }
+.join-card .error-text:empty { display: none; }
+
 /* ---------- 入力 ---------- */
 input[type="text"], input[type="email"], input[type="password"] {
   font: inherit;
