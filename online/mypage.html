@@ -6,6 +6,7 @@
   <title>マイページ - QRBingo</title>
   <link rel="icon" href="../img/favicon.svg">
   <link rel="stylesheet" href="../css/style.css">
+  <link rel="modulepreload" href="../js/online/tip-corner.js">
   <!-- モジュールの依存を事前に並列取得(ページ→スクリプト→SDK の直列待ちをなくす) -->
   <link rel="modulepreload" href="../lib/firebase/firebase-app.js">
   <link rel="modulepreload" href="../lib/firebase/firebase-auth.js">
@@ -87,6 +88,9 @@
 
     </div>
 
+
+    <!-- 投げ銭コーナー(運営への応援・全ページ共通の部品 js/online/tip-corner.js) -->
+    <section id="tip-panel" aria-label="投げ銭コーナー"></section>
   </main>
 
   <footer class="app-footer">
@@ -100,5 +104,6 @@
 
   <script type="module" src="../js/online/mypage.js"></script>
   <script type="module" src="../js/online/admin-link.js"></script>
+  <script type="module" src="../js/online/tip-corner.js"></script>
 </body>
 </html>

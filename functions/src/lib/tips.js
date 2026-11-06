@@ -34,9 +34,27 @@ function computeApplicationFee(amount, rate) {
   return Math.round(amount * normalizeRate(rate));
 }
 
+// 決済後の戻り先。投げ銭コーナーを置いたページだけを許可する(オープンリダイレクト防止)。
+const TIP_RETURN_PATHS = [
+  '/',
+  '/index.html',
+  '/online/player.html',
+  '/online/host.html',
+  '/online/mypage.html',
+];
+function tipReturnUrl(base, returnPath, gameId, state) {
+  const path = TIP_RETURN_PATHS.includes(String(returnPath || '')) ? returnPath : '/index.html';
+  const params = new URLSearchParams();
+  if (path === '/online/player.html' && gameId) params.set('g', gameId);
+  params.set('tip', state);
+  return `${base}${path}?${params.toString()}`;
+}
+
 module.exports = {
   DEFAULT_COMMISSION_RATE,
   TIPS_TO_HOST_ENABLED,
+  TIP_RETURN_PATHS,
+  tipReturnUrl,
   TIP_PRESETS,
   TIP_MIN,
   TIP_MAX,

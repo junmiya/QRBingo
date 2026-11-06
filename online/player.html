@@ -6,6 +6,7 @@
   <title>プレイヤー(オンライン) - QRBingo</title>
   <link rel="icon" href="../img/favicon.svg">
   <link rel="stylesheet" href="../css/style.css">
+  <link rel="modulepreload" href="../js/online/tip-corner.js">
   <!-- モジュールの依存を事前に並列取得(ページ→スクリプト→SDK の直列待ちをなくす) -->
   <link rel="modulepreload" href="../lib/firebase/firebase-app.js">
   <link rel="modulepreload" href="../lib/firebase/firebase-auth.js">
@@ -108,21 +109,8 @@
 
     </div>
 
-    <!-- 投げ銭コーナー(ページ最下部)。ゲームが存在すれば、参加していない視聴者も含め誰でも送れる -->
-    <section class="panel tip-corner" id="tip-panel" hidden>
-      <h2>投げ銭コーナー</h2>
-      <p class="hint"><strong>QRBingo の運営を応援</strong>できます。勝敗・順位には関係ありません。</p>
-      <p class="hint">いただいた投げ銭は<strong>すべて運営(aiueon)が受け取り</strong>、サービスの運営・改善に使います。ゲームの主催者への分配はありません。送ると、このゲームの全員の画面に応援が表示されます。</p>
-      <p class="checkout-banner" id="tip-banner" hidden></p>
-      <div class="tip-grid">
-        <button class="tip-btn" data-amount="100" type="button">¥100</button>
-        <button class="tip-btn" data-amount="300" type="button">¥300</button>
-        <button class="tip-btn" data-amount="500" type="button">¥500</button>
-        <button class="tip-btn" data-amount="1000" type="button">¥1,000</button>
-      </div>
-      <p class="hint">決済は Stripe(安全な外部決済)で行われ、カード情報はこのサイトには保存されません。決済後の返金はできません。</p>
-      <p class="hint error-text" id="tip-error"></p>
-    </section>
+    <!-- 投げ銭コーナー(運営への応援・全ページ共通の部品 js/online/tip-corner.js) -->
+    <section id="tip-panel" aria-label="投げ銭コーナー"></section>
   </main>
 
   <footer class="app-footer">

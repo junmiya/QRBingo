@@ -2,17 +2,17 @@
 
 // Stripe Webhook(spec 002)。署名を検証し、以下を処理する:
 //  - checkout.session.completed(プラン購入)→ entitlements/{uid} を付与
-//  - checkout.session.completed(投げ銭 kind=tip)→ ゲームの投げ銭を記録
+//  - checkout.session.completed(投げ銭 kind=tip)→ 運営への応援を記録(ゲームからならゲームにも)
 //  - account.updated(Connect)→ hostAccounts の受取可否を更新
 // 書き込みは Admin SDK 経由のみ(firestore.rules は該当コレクションの write を禁止)。
 // PII(カード情報・メール)は保持せず、状態フラグと金額だけを記録する。
 
 const { onRequest } = require('firebase-functions/v2/https');
 const { defineSecret } = require('firebase-functions/params');
-const { Timestamp, FieldValue } = require('firebase-admin/firestore');
+const { Timestamp } = require('firebase-admin/firestore');
 const { db } = require('./admin');
 const { planFromPrice } = require('./lib/plans');
-const { appendFeed } = require('./lib/feed');
+const { recordTip } = require('./lib/tipRecord');
 
 const STRIPE_SECRET_KEY = defineSecret('STRIPE_SECRET_KEY');
 const STRIPE_WEBHOOK_SECRET = defineSecret('STRIPE_WEBHOOK_SECRET');
@@ -67,59 +67,6 @@ async function handlePlanPurchase(stripe, session, isLive, uid) {
 }
 
 // --- 投げ銭 → ゲームに記録(entitlement は変えない) ---
-async function handleTip(session) {
-  const md = session.metadata || {};
-  const gameId = md.gameId;
-  if (!gameId) return 'no gameId';
-  const amount = Number(md.amount) || session.amount_total || 0;
-  const fee = Number(md.fee) || 0;
-  const net = Math.max(0, amount - fee);
-
-  const procRef = db.doc(`stripeEvents/${session.id}`);
-  const tipRef = db.doc(`games/${gameId}/tips/${session.id}`);
-  const gameRef = db.doc(`games/${gameId}`);
-
-  let firstTime = false;
-  await db.runTransaction(async (tx) => {
-    const done = await tx.get(procRef);
-    if (done.exists) return; // 冪等
-    firstTime = true;
-    const now = Date.now();
-    tx.set(tipRef, {
-      amount,
-      fee,
-      net,
-      fromUid: md.fromUid || null,
-      hostUid: md.hostUid || null,
-      at: Timestamp.fromMillis(now),
-    });
-    // ゲームに集計(総額・ホスト受取 net・件数)。配信画面での表示にも使える。
-    tx.set(
-      gameRef,
-      {
-        tipTotalAmount: FieldValue.increment(amount),
-        tipTotalNet: FieldValue.increment(net),
-        tipCount: FieldValue.increment(1),
-      },
-      { merge: true }
-    );
-    tx.set(procRef, { kind: 'tip', gameId, amount, fee, sessionId: session.id, at: Timestamp.fromMillis(now) });
-  });
-
-  // 全員に「応援」をアナウンス(スーパーチャット風・二重配信時は出さない)
-  if (firstTime) {
-    let nickname = '応援';
-    try {
-      const cardSnap = md.fromUid ? await db.doc(`cards/${gameId}_${md.fromUid}`).get() : null;
-      if (cardSnap && cardSnap.exists && cardSnap.data().nickname) nickname = cardSnap.data().nickname;
-    } catch (e) {
-      /* ニックネーム取得失敗時は既定名で通知 */
-    }
-    await appendFeed(gameId, { type: 'tip', nickname, amount });
-  }
-  return 'ok';
-}
-
 // --- Connect アカウント更新 → 受取可否を反映 ---
 async function handleAccountUpdated(account) {
   let uid = account.metadata && account.metadata.uid;
@@ -178,7 +125,7 @@ exports.stripeWebhook = onRequest(
         }
         const kind = session.metadata && session.metadata.kind;
         if (kind === 'tip') {
-          res.status(200).send(await handleTip(session));
+          res.status(200).send(await recordTip(session));
           return;
         }
         const uid = session.client_reference_id || (session.metadata && session.metadata.uid);

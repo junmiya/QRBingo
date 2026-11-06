@@ -13,6 +13,7 @@ const {
   computeApplicationFee,
   DEFAULT_COMMISSION_RATE,
   TIPS_TO_HOST_ENABLED,
+  tipReturnUrl,
 } = require('./lib/tips');
 
 const STRIPE_SECRET_KEY = defineSecret('STRIPE_SECRET_KEY');
@@ -43,23 +44,27 @@ exports.createTipCheckout = onCall({ secrets: [STRIPE_SECRET_KEY] }, async (requ
   if (!request.auth) throw new HttpsError('unauthenticated', 'サインインが必要です');
   const input = request.data || {};
 
-  const gameId = String(input.gameId || '');
-  if (!gameId) throw new HttpsError('invalid-argument', 'ゲームIDが必要です');
+  // 投げ銭は運営への応援。ゲームは任意(ゲームから送ると、そのゲームの全員にアナウンスする)
+  const gameId = String(input.gameId || '').trim().toUpperCase();
 
   const amountR = validateTipAmount(input.amount);
   if (!amountR.ok) throw new HttpsError('invalid-argument', '金額は100〜50000円の範囲で指定してください');
   const amount = amountR.value;
 
-  // ゲーム → ホスト → 接続アカウントを解決
-  const gameSnap = await db.doc(`games/${gameId}`).get();
-  if (!gameSnap.exists) throw new HttpsError('not-found', 'ゲームが見つかりません');
-  const hostUid = gameSnap.data().hostUid;
+  // ゲーム → ホスト → 接続アカウントを解決(ゲーム指定時のみ)
+  let hostUid = null;
+  if (gameId) {
+    const gameSnap = await db.doc(`games/${gameId}`).get();
+    if (!gameSnap.exists) throw new HttpsError('not-found', 'ゲームが見つかりません');
+    hostUid = gameSnap.data().hostUid;
+  }
 
   // 現時点では投げ銭はすべて運営が受領する(TIPS_TO_HOST_ENABLED=false)。
   // 有効化した場合のみ、Stripe Connect 接続済みのホストへ振り分ける:
   //  - 接続済み  : destination charge。ホストへ送金し、運営は手数料(既定50%)を受領。
   //  - 未接続    : 通常課金(送金なし)。投げ銭は 100% 運営に入る。
-  const acctSnap = TIPS_TO_HOST_ENABLED ? await db.doc(`hostAccounts/${hostUid}`).get() : null;
+  const acctSnap =
+    TIPS_TO_HOST_ENABLED && hostUid ? await db.doc(`hostAccounts/${hostUid}`).get() : null;
   const connected = !!(
     acctSnap &&
     acctSnap.exists &&
@@ -69,6 +74,7 @@ exports.createTipCheckout = onCall({ secrets: [STRIPE_SECRET_KEY] }, async (requ
 
   const origin = String(input.origin || '');
   const base = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  const backUrl = (state) => tipReturnUrl(base, input.returnPath, gameId, state);
 
   const Stripe = require('stripe');
   const stripe = new Stripe(STRIPE_SECRET_KEY.value());
@@ -87,14 +93,13 @@ exports.createTipCheckout = onCall({ secrets: [STRIPE_SECRET_KEY] }, async (requ
     ],
     metadata: {
       kind: 'tip',
-      gameId,
-      hostUid,
+      ...(gameId ? { gameId, hostUid } : {}),
       fromUid: request.auth.uid,
       amount: String(amount),
       toHost: connected ? '1' : '0',
     },
-    success_url: `${base}/online/player.html?g=${encodeURIComponent(gameId)}&tip=thanks`,
-    cancel_url: `${base}/online/player.html?g=${encodeURIComponent(gameId)}&tip=cancel`,
+    success_url: backUrl('thanks'),
+    cancel_url: backUrl('cancel'),
   };
 
   if (connected) {

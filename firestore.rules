@@ -84,6 +84,11 @@ service cloud.firestore {
     }
 
     // Stripe Webhook の冪等記録(処理済みセッションID)。内部専用・クライアント非公開。
+    // 投げ銭(運営への応援)の台帳。Webhook のみが書き、クライアントは読めない。
+    match /operatorTips/{tipId} {
+      allow read, write: if false;
+    }
+
     match /stripeEvents/{sessionId} {
       allow read: if false;
       allow write: if false;

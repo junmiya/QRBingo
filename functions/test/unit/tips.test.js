@@ -8,11 +8,30 @@ const {
   normalizeRate,
   computeApplicationFee,
   TIPS_TO_HOST_ENABLED,
+  tipReturnUrl,
 } = require('../../src/lib/tips');
 
 describe('投げ銭ロジック (spec 002・Phase B)', () => {
   test('現時点では投げ銭は運営のみが受領する(主催者への分配は無効)', () => {
     expect(TIPS_TO_HOST_ENABLED).toBe(false);
+  });
+
+  describe('tipReturnUrl(決済後の戻り先)', () => {
+    const base = 'https://qrbingo.web.app';
+    test('許可したページへ戻る(ゲームなし)', () => {
+      expect(tipReturnUrl(base, '/index.html', '', 'thanks')).toBe(`${base}/index.html?tip=thanks`);
+      expect(tipReturnUrl(base, '/online/mypage.html', '', 'cancel')).toBe(`${base}/online/mypage.html?tip=cancel`);
+    });
+    test('プレイヤー画面はゲームコード付きで戻る', () => {
+      expect(tipReturnUrl(base, '/online/player.html', 'ABCD', 'thanks')).toBe(
+        `${base}/online/player.html?g=ABCD&tip=thanks`
+      );
+    });
+    test('許可外・外部 URL はトップへ(オープンリダイレクト防止)', () => {
+      expect(tipReturnUrl(base, 'https://evil.example/', '', 'thanks')).toBe(`${base}/index.html?tip=thanks`);
+      expect(tipReturnUrl(base, '//evil.example', '', 'thanks')).toBe(`${base}/index.html?tip=thanks`);
+      expect(tipReturnUrl(base, undefined, '', 'thanks')).toBe(`${base}/index.html?tip=thanks`);
+    });
   });
 
   test('既定の運営手数料率は50%', () => {

@@ -6,6 +6,7 @@
   <title>QRBingo - QRコードビンゴゲーム</title>
   <link rel="icon" href="img/favicon.svg">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="modulepreload" href="js/online/tip-corner.js">
   <!-- モジュールの依存を事前に並列取得(ページ→スクリプト→SDK の直列待ちをなくす) -->
   <link rel="modulepreload" href="lib/firebase/firebase-app.js">
   <link rel="modulepreload" href="lib/firebase/firebase-auth.js">
@@ -81,7 +82,7 @@
           <li>リーチ・ビンゴは<strong>全員の画面に速報</strong>。勝利条件(初期は1ライン)に達すると自動で申告され、順位が表示されます。</li>
           <li>主催者が「ゲームを終了」すると<strong>順位が確定</strong>。景品数までの当選者に<strong>当選コード</strong>が表示されるので、主催者に伝えて景品を受け取ります。</li>
         </ol>
-        <p class="hint">チャット・開始カウントダウンは、作成時の「詳細設定」で選べます。参加者・視聴者は誰でも、参加画面の一番下の「投げ銭コーナー」から運営を応援できます(勝敗には無関係)。</p>
+        <p class="hint">チャット・開始カウントダウンは、作成時の「詳細設定」で選べます。どなたでも、各ページの一番下の「投げ銭コーナー」から運営を応援できます(勝敗には無関係)。ゲームの参加画面から送ると、そのゲームの全員の画面に応援が表示されます。</p>
       </details>
     </section>
     </div>
@@ -116,6 +117,9 @@
       </details>
     </section>
     </div>
+
+    <!-- 投げ銭コーナー(運営への応援・全ページ共通の部品 js/online/tip-corner.js) -->
+    <section id="tip-panel" aria-label="投げ銭コーナー"></section>
   </main>
 
   <footer class="app-footer">
@@ -168,5 +172,6 @@
     });
   </script>
   <script type="module" src="js/online/admin-link.js"></script>
+  <script type="module" src="js/online/tip-corner.js"></script>
 </body>
 </html>

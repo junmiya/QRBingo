@@ -10,6 +10,7 @@ import {
   watchDocPath,
 } from './firebase-init.js';
 import { watchAnnouncements, initChat, fmtCountdown } from './live-extras.js';
+import { setTipGame } from './tip-corner.js';
 
 const $ = (id) => document.getElementById(id);
 const LAST_GAME_KEY = 'qrbingo:online:player:last';
@@ -18,7 +19,6 @@ const SECTIONS = ['gamecode-panel', 'nickname-panel', 'error-panel', 'game-area'
 const joinGameFn = callable('joinGame');
 const submitClaimFn = callable('submitClaim');
 const reportReachFn = callable('reportReach');
-const createTipCheckoutFn = callable('createTipCheckout');
 
 let currentGameId = null;
 let myUid = null;
@@ -72,7 +72,7 @@ async function resolveAndJoin(gameId) {
         return;
       }
       showOnly('nickname-panel');
-      showTipCorner(true); // 参加前の視聴者も応援できる
+      showTipCorner(true); // 参加前の視聴者もこのゲームに応援を表示できる
       $('in-nickname').focus();
     } else {
       showError(err);
@@ -103,13 +103,13 @@ async function submitNickname() {
 function showError(err) {
   $('error-message').textContent = err.message || String(err);
   showOnly('error-panel');
-  // 定員超過・終了済みなどでもゲーム自体はあるので、投げ銭コーナーは出す
+  // 定員超過・終了済みなどでもゲーム自体はあるので、そのゲームへの応援として送れる
   showTipCorner(errCode(err) !== 'not-found');
 }
 
-// 投げ銭コーナー(最下部)。ゲームが存在すれば参加の有無にかかわらず誰でも送れる。
-function showTipCorner(show) {
-  $('tip-panel').hidden = !(show && currentGameId);
+// 投げ銭コーナー(最下部・常に表示)。ゲームが確定していれば、そのゲームの全員に応援を表示する。
+function showTipCorner(inGame) {
+  setTipGame(inGame ? currentGameId : null);
 }
 
 function onJoined(res) {
@@ -239,39 +239,6 @@ function onGameSnapshot(game) {
   renderCard();
   updateChat(game);
   updateCountdown(game);
-}
-
-// ---------- 投げ銭 ----------
-async function sendTip(amount) {
-  $('tip-error').textContent = '';
-  try {
-    const res = await createTipCheckoutFn({ gameId: currentGameId, amount, origin: location.origin });
-    if (res && res.url) {
-      location.href = res.url; // Stripe の決済画面へ
-    } else {
-      $('tip-error').textContent = '決済ページを開けませんでした。';
-    }
-  } catch (err) {
-    $('tip-error').textContent = err.message || String(err);
-  }
-}
-
-// 決済からの戻り(?tip=thanks|cancel)の案内
-function showTipBanner() {
-  const state = new URLSearchParams(location.search).get('tip');
-  if (!state) return;
-  const banner = $('tip-banner');
-  banner.hidden = false;
-  if (state === 'thanks') {
-    banner.className = 'checkout-banner ok';
-    banner.textContent = '応援ありがとうございます!ホストに届きました。';
-  } else {
-    banner.className = 'checkout-banner';
-    banner.textContent = '投げ銭はキャンセルされました。';
-  }
-  const url = new URL(location.href);
-  url.searchParams.delete('tip');
-  history.replaceState(null, '', url.toString());
 }
 
 // ---------- 当選条件の自動検知とクレーム送信 ----------
@@ -472,11 +439,6 @@ $('in-nickname').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') submitNickname();
 });
 
-$('tip-panel').addEventListener('click', (ev) => {
-  const btn = ev.target.closest('.tip-btn[data-amount]');
-  if (btn) sendTip(Number(btn.dataset.amount));
-});
-
 $('error-retry-btn').addEventListener('click', () => {
   localStorage.removeItem(LAST_GAME_KEY);
   const url = new URL(location.href);
@@ -500,7 +462,6 @@ $('error-retry-btn').addEventListener('click', () => {
   myUid = user.uid;
   $('conn-status').hidden = true;
 
-  showTipBanner();
 
   const params = new URLSearchParams(location.search);
   const fromUrl = params.get('g');
