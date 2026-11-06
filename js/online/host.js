@@ -8,7 +8,6 @@ import {
   signOutHost,
   callable,
   watchGame,
-  readGame,
   watchMyGames,
   watchDocPath,
   watchCollectionPath,
@@ -58,6 +57,8 @@ let announceStarted = false; // アナウンス購読は1回だけ
 let chatUnwatch = null; // チャット購読(有効化時に開始)
 let hostCountdownTimer = null; // ホスト側カウントダウン表示の更新
 let chatCurrentlyEnabled = false;
+let latestMyGames = []; // 主催したゲーム(進行中ゲームへの「戻る」バナー用)
+let drawBtnVisible = true; // 抽選ボタンが画面内にあるか(ドック表示の判定)
 
 function esc(s) {
   return String(s).replace(/[&<>"']/g, (c) =>
@@ -65,10 +66,34 @@ function esc(s) {
   );
 }
 
+// ゲームタブは状態ごとに必要なパネルだけを出す。
+// ゲームなし=作成 / lobby=参加受付 / playing=抽選+進行操作 / finished・expired=終了
 function showPanel(name) {
-  for (const p of ['create-panel', 'lobby-panel', 'playing-panel']) {
+  for (const p of ['create-panel', 'lobby-panel', 'playing-panel', 'finished-panel']) {
     $(p).hidden = p !== name;
   }
+  $('ops-panel').hidden = name !== 'playing-panel';
+  $('game-tab-dot').hidden = !(name === 'lobby-panel' || name === 'playing-panel');
+  renderActiveBanner();
+  syncDock();
+}
+
+// ---------- タブ(ゲーム / マイページ / 運営) ----------
+function setTab(name) {
+  document.querySelectorAll('#host-tabs .tab').forEach((t) => {
+    const on = t.dataset.tab === name;
+    t.classList.toggle('active', on);
+    t.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  document.querySelectorAll('.tab-panel').forEach((p) => {
+    p.hidden = p.id !== 'tab-' + name;
+  });
+  syncDock();
+}
+
+function currentTab() {
+  const t = document.querySelector('#host-tabs .tab.active');
+  return t ? t.dataset.tab : 'game';
 }
 
 function parseOptionalInt(value) {
@@ -100,21 +125,13 @@ async function handleCreate() {
 }
 
 // ---------- アップグレード(課金) ----------
-function toggleUpgrade() {
-  const box = $('upgrade-plans');
-  const btn = $('upgrade-toggle');
-  const show = box.hidden;
-  box.hidden = !show;
-  btn.setAttribute('aria-expanded', show ? 'true' : 'false');
-}
-
 async function handleUpgrade(ev) {
   const card = ev.target.closest('.plan-card[data-plan]');
   if (!card) return;
   const plan = card.dataset.plan;
   $('upgrade-error').textContent = '';
   if (isAnon) {
-    $('upgrade-error').textContent = '購入するには、上部「アカウント」から Google でログインしてください（買ったプランを失わないため必須です）。';
+    $('upgrade-error').textContent = '購入するには、マイページの「アカウント」からログインしてください（買ったプランを失わないため必須です）。';
     $('account-panel').scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
@@ -174,7 +191,7 @@ function renderConnect(acct) {
 async function handleConnect() {
   $('connect-error').textContent = '';
   if (isAnon) {
-    $('connect-error').textContent = '投げ銭を受け取るには、上部「アカウント」から Google でログインしてください（受取設定を端末間で保持するため必須です）。';
+    $('connect-error').textContent = '投げ銭を受け取るには、マイページの「アカウント」からログインしてください（受取設定を端末間で保持するため必須です）。';
     $('account-panel').scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
@@ -219,11 +236,12 @@ async function handleConnectReturn() {
 // ---------- ライブ機能(チャット切替・カウントダウン) ----------
 function updateLive(game) {
   const active = game.status === 'lobby' || game.status === 'playing';
-  $('live-panel').hidden = !active;
 
   const chatEnabled = !!(game.settings && game.settings.chatEnabled);
   chatCurrentlyEnabled = chatEnabled;
-  $('chat-toggle-btn').textContent = 'チャット: ' + (chatEnabled ? 'ON(タップでOFF)' : 'OFF(タップでON)');
+  document.querySelectorAll('.chat-toggle').forEach((b) => {
+    b.textContent = 'チャット: ' + (chatEnabled ? 'ON(タップでOFF)' : 'OFF(タップでON)');
+  });
 
   // チャットパネル(進行中=lobby/playing かつ有効化時のみ表示・購読)。
   // finished/expired では隠して購読解除する(終了/中止後に送信して
@@ -265,78 +283,52 @@ function updateLive(game) {
   }
 }
 
-async function handleChatToggle() {
-  $('live-error').textContent = '';
-  $('chat-toggle-btn').disabled = true;
+// ライブ操作のエラー表示先(ロビー中はロビー、進行中は進行操作パネル)
+const liveErr = () => $(gameStatus === 'lobby' ? 'lobby-error' : 'ops-error');
+
+async function handleChatToggle(ev) {
+  const btn = ev.currentTarget;
+  liveErr().textContent = '';
+  btn.disabled = true;
   try {
     await setChatEnabledFn({ gameId, enabled: !chatCurrentlyEnabled });
   } catch (err) {
-    $('live-error').textContent = err.message || String(err);
+    liveErr().textContent = err.message || String(err);
   } finally {
-    $('chat-toggle-btn').disabled = false;
+    btn.disabled = false;
   }
 }
 
 async function handleCountdownStart() {
-  $('live-error').textContent = '';
+  liveErr().textContent = '';
   const seconds = parseInt($('countdown-sec').value, 10);
   if (!Number.isInteger(seconds) || seconds < 1 || seconds > 3600) {
-    $('live-error').textContent = '秒は 1〜3600 で入力してください';
+    liveErr().textContent = '秒は 1〜3600 で入力してください';
     return;
   }
   try {
     await setCountdownFn({ gameId, seconds });
   } catch (err) {
-    $('live-error').textContent = err.message || String(err);
+    liveErr().textContent = err.message || String(err);
   }
 }
 
 async function handleCountdownStop() {
-  $('live-error').textContent = '';
+  liveErr().textContent = '';
   try {
     await setCountdownFn({ gameId, seconds: 0 });
   } catch (err) {
-    $('live-error').textContent = err.message || String(err);
+    liveErr().textContent = err.message || String(err);
   }
 }
 
-// ---------- 進行中ゲームへの再接続 ----------
+// ---------- 進行中ゲームへ戻る ----------
 function attachToGame(id) {
   gameId = id;
   QRB.saveJSON(CURRENT_KEY, { gameId });
   attachWatcher();
+  setTab('game');
   window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-async function handleResume() {
-  const code = ($('resume-code').value || '').trim().toUpperCase();
-  $('resume-error').textContent = '';
-  if (!/^[A-Z0-9]{4,8}$/.test(code)) {
-    $('resume-error').textContent = 'ゲームコードを入力してください';
-    return;
-  }
-  $('resume-btn').disabled = true;
-  try {
-    const game = await readGame(code);
-    if (!game) {
-      $('resume-error').textContent = 'そのゲームは見つかりません';
-      return;
-    }
-    if (game.hostUid !== myUid) {
-      $('resume-error').textContent =
-        'このゲームのホストではありません(別の端末やブラウザで作成された可能性があります)';
-      return;
-    }
-    if (game.status === 'finished' || game.status === 'expired') {
-      $('resume-error').textContent = 'このゲームは既に終了しています';
-      return;
-    }
-    attachToGame(code);
-  } catch (err) {
-    $('resume-error').textContent = err.message || String(err);
-  } finally {
-    $('resume-btn').disabled = false;
-  }
 }
 
 // ---------- 主催しているゲーム一覧(管理モード) ----------
@@ -349,7 +341,9 @@ const STATUS_LABEL = {
 
 function renderMyGames(games) {
   const panel = $('mygames-panel');
-  const list = (games || []).slice().sort((a, b) => {
+  latestMyGames = games || [];
+  renderActiveBanner();
+  const list = latestMyGames.slice().sort((a, b) => {
     const am = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0;
     const bm = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0;
     return bm - am; // 新しい順
@@ -359,12 +353,14 @@ function renderMyGames(games) {
     return;
   }
   panel.hidden = false;
+  $('mygames-count').textContent = list.length;
   const rows = list
     .map((g) => {
       const active = g.status === 'lobby' || g.status === 'playing';
       const label = STATUS_LABEL[g.status] || g.status;
-      const back = active ? `<button data-act="back" data-id="${g.id}">戻る</button>` : '';
-      const end = active ? `<button data-act="end" data-id="${g.id}">終了(中止)</button>` : '';
+      const back =
+        active && g.id !== gameId ? `<button data-act="back" data-id="${g.id}">戻る</button>` : '';
+      const end = active ? `<button data-act="end" data-id="${g.id}">中止</button>` : '';
       return `<tr class="${g.id === gameId ? 'is-winner' : ''}">
         <td><strong>${esc(g.id)}</strong></td>
         <td>${label}</td>
@@ -377,6 +373,23 @@ function renderMyGames(games) {
     `<table class="leaderboard"><thead><tr>
        <th>コード</th><th>状態</th><th>参加</th><th></th>
      </tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+// 表示していない進行中ゲームがあれば、ゲームタブ上部に「戻る」バナーを出す。
+// (同時に主催できるのは1ゲームなので、通常は0か1件)
+function renderActiveBanner() {
+  const active = latestMyGames.find(
+    (g) => (g.status === 'lobby' || g.status === 'playing') && g.id !== gameId
+  );
+  const banner = $('active-game-banner');
+  if (!active || gameId) {
+    banner.hidden = true;
+    return;
+  }
+  banner.hidden = false;
+  banner.dataset.id = active.id;
+  $('active-game-text').textContent =
+    `${active.id}(${STATUS_LABEL[active.status]}・参加 ${active.participantCount || 0}人)`;
 }
 
 async function handleMyGamesClick(ev) {
@@ -413,6 +426,7 @@ function renderBall(n) {
     '<span class="ball-letter">' + QRB.columnLetter(n) + '</span>' +
     '<span class="ball-number">' + n + '</span>';
   setTimeout(() => ball.classList.remove('pop'), 500);
+  syncDock();
 }
 
 function renderHistory(draws) {
@@ -429,6 +443,22 @@ function renderHistory(draws) {
   latestDrawsCount = draws.length;
   $('draw-btn').disabled = drawing || draws.length >= 75;
   $('draw-btn').textContent = draws.length >= 75 ? '全番号を抽選しました' : '抽選する!';
+  syncDock();
+}
+
+// ---------- 抽選ドック ----------
+// 抽選ボタンがスクロールで画面外に出たとき(ランキングやチャットを見ているとき)だけ、
+// 画面下部に「直近の番号+抽選する!」を表示する。状態は本体の抽選ボタンに合わせる。
+function syncDock() {
+  const dock = $('draw-dock');
+  const show = gameStatus === 'playing' && currentTab() === 'game' && !drawBtnVisible;
+  dock.hidden = !show;
+  if (!show) return;
+  const n = $('current-ball').querySelector('.ball-number');
+  $('dock-ball').textContent = n ? n.textContent : '?';
+  $('dock-count').textContent = `${latestDrawsCount} / 75`;
+  $('dock-draw-btn').disabled = $('draw-btn').disabled;
+  $('dock-draw-btn').textContent = $('draw-btn').textContent;
 }
 
 function renderGame(game) {
@@ -483,16 +513,25 @@ function renderGame(game) {
       $('draw-btn').textContent = '抽選する!';
       $('draw-error').textContent = '';
     }
+    syncDock();
     return;
   }
 
   // finished / expired
-  showPanel('playing-panel');
-  $('finish-btn').hidden = true;
-  renderHistory(game.draws || []);
+  showPanel('finished-panel');
   renderReaches(); // 終了後はリーチ表示を畳む
-  $('draw-btn').disabled = true;
-  $('draw-btn').textContent = game.status === 'finished' ? 'ゲーム終了(順位確定済み)' : 'ゲーム終了';
+  const drawn = (game.draws || []).length;
+  if (game.status === 'finished') {
+    $('finished-title').textContent = `ゲーム ${gameId} は終了しました(順位確定)`;
+    $('finished-text').textContent =
+      `抽選 ${drawn}球 / 参加 ${game.participantCount || 0}人。下の確定ランキングで当選コードを照合し、景品をお渡しください。`;
+  } else {
+    $('finished-title').textContent = `ゲーム ${gameId} は中止されました`;
+    $('finished-text').textContent = `抽選 ${drawn}球 / 参加 ${game.participantCount || 0}人。順位は確定していません。`;
+    $('ranking-panel').hidden = true;
+  }
+  $('finished-tips').hidden = tipNote.hidden;
+  $('finished-tips').textContent = tipNote.textContent;
 }
 
 function attachWatcher() {
@@ -568,6 +607,11 @@ function onResults(results) {
   if (!results || !results.entries) return;
   $('ranking-panel').hidden = false;
   $('ranking-title').textContent = '確定ランキング';
+  if (results.entries.length === 0) {
+    $('ranking-note').textContent = 'ビンゴ成立者はいませんでした。';
+    $('ranking-body').innerHTML = '';
+    return;
+  }
   $('ranking-note').textContent = results.tieBreakApplied
     ? '同着があったため一部は抽選で決定しました(当選コードを当選者に照合してください)。'
     : '当選コードを当選者に照合して景品をお渡しください。';
@@ -656,6 +700,7 @@ async function handleDraw() {
     // ボタンの有効・無効を確定する(スナップショット到着が drawing=false への
     // 復帰より先行すると、そのままボタンが無効固定されてしまうため)。
     $('draw-btn').disabled = latestDrawsCount >= 75;
+    syncDock();
   }
 }
 
@@ -664,12 +709,12 @@ async function handleFinish() {
   if (!confirm('ゲームを終了して順位を確定しますか?\nこの操作は取り消せません。')) return;
   finishing = true;
   $('finish-btn').disabled = true;
-  $('draw-error').textContent = '';
+  $('ops-error').textContent = '';
   try {
     await finishGameFn({ gameId });
     // 結果は private/results の購読(onResults)で描画される
   } catch (err) {
-    $('draw-error').textContent = err.message || String(err);
+    $('ops-error').textContent = err.message || String(err);
   } finally {
     finishing = false;
   }
@@ -717,19 +762,9 @@ function clearGameView() {
   $('create-error').textContent = '';
   $('ranking-panel').hidden = true;
   $('reach-panel').hidden = true;
-  $('live-panel').hidden = true;
   $('chat-panel').hidden = true;
   showPanel('create-panel');
-}
-
-function handleReset() {
-  if (!confirm(
-    '表示をリセットしますか?\n\n' +
-    '※ 進行中のゲームは「終了」しません(参加者はそのまま継続)。\n' +
-    'ゲームを本当に終わらせたいときは、先に「ゲームを終了して順位を確定」を押してください。\n' +
-    'リセット後も、同じ端末なら下の「再接続」にゲームコードを入れて戻れます。'
-  )) return;
-  clearGameView();
+  renderMyGames(latestMyGames);
 }
 
 // ゲームを中止する(順位を出さずに終了)。ロビー・進行中どちらからでも可能。
@@ -740,7 +775,7 @@ async function handleCancel() {
     await cancelGameFn({ gameId });
     clearGameView();
   } catch (err) {
-    const box = gameStatus === 'lobby' ? 'lobby-error' : 'draw-error';
+    const box = gameStatus === 'lobby' ? 'lobby-error' : 'ops-error';
     $(box).textContent = err.message || String(err);
   }
 }
@@ -751,21 +786,40 @@ $('start-btn').addEventListener('click', handleStart);
 $('draw-btn').addEventListener('click', handleDraw);
 $('finish-btn').addEventListener('click', handleFinish);
 $('ranking-body').addEventListener('click', handleRankingClick);
-$('reset-btn').addEventListener('click', handleReset);
-$('resume-btn').addEventListener('click', handleResume);
+$('new-game-btn').addEventListener('click', clearGameView);
+$('dock-draw-btn').addEventListener('click', handleDraw);
+$('active-game-back').addEventListener('click', () => {
+  const id = $('active-game-banner').dataset.id;
+  if (id) attachToGame(id);
+});
+document.querySelectorAll('#host-tabs .tab').forEach((t) =>
+  t.addEventListener('click', () => setTab(t.dataset.tab))
+);
+$('account-chip').addEventListener('click', () => setTab('mypage'));
+document.querySelectorAll('.go-mypage').forEach((a) =>
+  a.addEventListener('click', (e) => {
+    e.preventDefault();
+    setTab('mypage');
+  })
+);
+if ('IntersectionObserver' in window) {
+  new IntersectionObserver((entries) => {
+    drawBtnVisible = entries[entries.length - 1].isIntersecting;
+    syncDock();
+  }).observe($('draw-btn'));
+}
 $('cancel-lobby-btn').addEventListener('click', handleCancel);
 $('cancel-playing-btn').addEventListener('click', handleCancel);
 $('mygames-body').addEventListener('click', handleMyGamesClick);
 $('admin-refresh-btn').addEventListener('click', loadAdminGames);
 $('admin-body').addEventListener('click', handleAdminClick);
-$('upgrade-toggle').addEventListener('click', toggleUpgrade);
 $('upgrade-plans').addEventListener('click', handleUpgrade);
 $('connect-btn').addEventListener('click', handleConnect);
 $('login-btn').addEventListener('click', handleLogin);
 $('logout-btn').addEventListener('click', handleLogout);
 $('email-login-btn').addEventListener('click', handleEmailLogin);
 $('login-pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') handleEmailLogin(); });
-$('chat-toggle-btn').addEventListener('click', handleChatToggle);
+document.querySelectorAll('.chat-toggle').forEach((b) => b.addEventListener('click', handleChatToggle));
 $('countdown-start').addEventListener('click', handleCountdownStart);
 $('countdown-stop').addEventListener('click', handleCountdownStop);
 
@@ -782,6 +836,11 @@ $('countdown-stop').addEventListener('click', handleCountdownStop);
   const user = await ensureSignedIn();
   myUid = user.uid;
   $('conn-status').hidden = true;
+  $('host-tabs').hidden = false;
+  $('account-chip').hidden = false;
+  // 決済・口座接続から戻ったときはマイページを開く(結果バナーがそこにあるため)
+  const qs = new URLSearchParams(location.search);
+  setTab(qs.has('checkout') || qs.has('connect') ? 'mypage' : 'game');
 
   // 決済からの戻り(?checkout=success|cancel)の案内
   showCheckoutBanner();
@@ -813,7 +872,9 @@ $('countdown-stop').addEventListener('click', handleCountdownStop);
 // ---------- アカウント(ログイン) ----------
 function renderAuth(user) {
   isAnon = !user || user.isAnonymous;
-  $('account-panel').hidden = false;
+  const chip = $('account-chip');
+  chip.textContent = isAnon ? 'ゲスト(未ログイン)' : user.email || user.displayName || 'ログイン中';
+  chip.classList.toggle('signed-in', !isAnon);
   const status = $('account-status');
   const loginBtn = $('login-btn');
   const logoutBtn = $('logout-btn');
@@ -833,6 +894,9 @@ function renderAuth(user) {
   // ログインが必要な操作(プラン購入・投げ銭の受け取り)は、ログイン後のみUIを表示
   document.querySelectorAll('.login-gated').forEach((el) => {
     el.hidden = isAnon;
+  });
+  document.querySelectorAll('.anon-only').forEach((el) => {
+    el.hidden = !isAnon;
   });
 }
 
@@ -982,7 +1046,8 @@ async function handleAdminClick(ev) {
 function updateAdminMode(user) {
   const email = (user && user.email ? String(user.email) : '').toLowerCase();
   const isAdmin = !user.isAnonymous && ADMIN_EMAILS.includes(email);
-  $('admin-panel').hidden = !isAdmin;
+  $('admin-tab').hidden = !isAdmin;
+  if (!isAdmin && currentTab() === 'admin') setTab('game');
   if (isAdmin) loadAdminGames();
 }
 
@@ -999,12 +1064,13 @@ function renderPlan(ent) {
       label = `${ent.plan || '有料'}プラン`;
     }
   }
-  const badge = $('plan-badge');
-  badge.hidden = false;
-  badge.textContent =
-    maxPlayers >= FREE_MAX_PLAYERS && label === '無料プラン'
+  const badgeText =
+    label === '無料プラン'
       ? `現在のプラン: 無料(1ゲーム最大 ${maxPlayers} 人)`
       : `現在のプラン: ${label}(1ゲーム最大 ${maxPlayers} 人)`;
+  $('plan-badge').hidden = false;
+  $('plan-badge').textContent = badgeText;
+  $('plan-badge-mypage').textContent = badgeText;
   $('capacity-hint').textContent = `(最大 ${maxPlayers} 人・空欄で上限まで)`;
   $('in-capacity').setAttribute('placeholder', `最大 ${maxPlayers}`);
 }

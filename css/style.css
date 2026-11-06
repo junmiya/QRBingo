@@ -372,6 +372,114 @@ label.hint { display: block; }
 .howto-list li { margin-bottom: 8px; }
 .howto-list li::marker { color: var(--primary); font-weight: 800; }
 
+/* ---------- ホスト画面: タブ・アカウント表示 ---------- */
+.tab { position: relative; }
+.tab-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: var(--success);
+  vertical-align: middle;
+  box-shadow: 0 0 0 2px var(--panel);
+}
+.tab-dot[hidden] { display: none; }
+
+.account-chip {
+  margin-top: 10px;
+  padding: 6px 14px;
+  width: auto;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text-secondary);
+  font-size: .85rem;
+  font-weight: 700;
+  max-width: 90%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.account-chip.signed-in { color: var(--text); border-color: var(--success); }
+.account-chip:hover { border-color: var(--primary); }
+
+/* 折りたたみ(詳細設定・主催したゲーム・あそびかた) */
+details.fold > summary {
+  cursor: pointer;
+  font-weight: 800;
+  color: var(--text);
+  padding: 4px 0;
+  list-style: none;
+}
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary::before {
+  content: '';
+  display: inline-block;
+  width: 0;
+  height: 0;
+  margin-right: 8px;
+  border-left: 6px solid var(--primary);
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  transition: transform .15s ease;
+  vertical-align: middle;
+}
+details.fold[open] > summary::before { transform: rotate(90deg); }
+details.fold > summary h2 { display: inline; margin: 0; }
+
+.sub-block {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.danger-row {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+  justify-content: flex-end;
+}
+.btn-small { width: auto; padding: 8px 14px; font-size: .88rem; }
+
+.resume-banner {
+  border-color: var(--success);
+  background: color-mix(in srgb, var(--success) 9%, var(--panel));
+}
+.gated-note { font-style: normal; }
+
+/* 抽選ドック(抽選ボタンが画面外のときだけ下部に固定表示) */
+.draw-dock {
+  position: fixed;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px 10px 14px;
+  width: min(460px, calc(100vw - 24px));
+  border-radius: var(--radius);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+}
+.draw-dock[hidden] { display: none; }
+.draw-dock-ball {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  font-size: 1.15rem;
+  color: #fff;
+  background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+}
+.draw-dock .hint { margin: 0; flex: 1; }
+.draw-dock .btn-primary { width: auto; flex-shrink: 0; padding: 12px 18px; }
+
 /* ---------- QR / ゲームコード ---------- */
 .qr-box {
   background: #fff;
