@@ -6,6 +6,18 @@
   <title>ホスト(オンライン) - QRBingo</title>
   <link rel="icon" href="../img/favicon.svg">
   <link rel="stylesheet" href="../css/style.css">
+  <!-- モジュールの依存を事前に並列取得(ページ→スクリプト→SDK の直列待ちをなくす) -->
+  <link rel="modulepreload" href="../lib/firebase/firebase-app.js">
+  <link rel="modulepreload" href="../lib/firebase/firebase-auth.js">
+  <link rel="modulepreload" href="../lib/firebase/firebase-firestore.js">
+  <link rel="modulepreload" href="../lib/firebase/firebase-functions.js">
+  <link rel="modulepreload" href="../js/online/firebase-config.js">
+  <link rel="modulepreload" href="../js/online/firebase-init.js">
+  <link rel="modulepreload" href="../js/online/host.js">
+  <link rel="modulepreload" href="../js/online/live-extras.js">
+  <link rel="modulepreload" href="../js/online/plan.js">
+  <link rel="modulepreload" href="../js/online/admin-link.js">
+  <link rel="modulepreload" href="../js/online/admin-config.js">
   <script>
     // 旧URL互換: 決済・口座接続の戻り先(?checkout / ?connect)や ?tab= は
     // マイページ/運営メニューのページへ転送する(進行中の決済の戻りを失わないため)

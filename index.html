@@ -6,6 +6,15 @@
   <title>QRBingo - QRコードビンゴゲーム</title>
   <link rel="icon" href="img/favicon.svg">
   <link rel="stylesheet" href="css/style.css">
+  <!-- モジュールの依存を事前に並列取得(ページ→スクリプト→SDK の直列待ちをなくす) -->
+  <link rel="modulepreload" href="lib/firebase/firebase-app.js">
+  <link rel="modulepreload" href="lib/firebase/firebase-auth.js">
+  <link rel="modulepreload" href="lib/firebase/firebase-firestore.js">
+  <link rel="modulepreload" href="lib/firebase/firebase-functions.js">
+  <link rel="modulepreload" href="js/online/firebase-config.js">
+  <link rel="modulepreload" href="js/online/firebase-init.js">
+  <link rel="modulepreload" href="js/online/admin-link.js">
+  <link rel="modulepreload" href="js/online/admin-config.js">
 </head>
 <body>
   <header class="app-header">

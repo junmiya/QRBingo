@@ -6,6 +6,17 @@
   <title>マイページ - QRBingo</title>
   <link rel="icon" href="../img/favicon.svg">
   <link rel="stylesheet" href="../css/style.css">
+  <!-- モジュールの依存を事前に並列取得(ページ→スクリプト→SDK の直列待ちをなくす) -->
+  <link rel="modulepreload" href="../lib/firebase/firebase-app.js">
+  <link rel="modulepreload" href="../lib/firebase/firebase-auth.js">
+  <link rel="modulepreload" href="../lib/firebase/firebase-firestore.js">
+  <link rel="modulepreload" href="../lib/firebase/firebase-functions.js">
+  <link rel="modulepreload" href="../js/online/firebase-config.js">
+  <link rel="modulepreload" href="../js/online/firebase-init.js">
+  <link rel="modulepreload" href="../js/online/mypage.js">
+  <link rel="modulepreload" href="../js/online/plan.js">
+  <link rel="modulepreload" href="../js/online/admin-link.js">
+  <link rel="modulepreload" href="../js/online/admin-config.js">
 </head>
 <body>
   <header class="app-header">
@@ -52,7 +63,7 @@
       <!-- プラン -->
       <section class="panel" id="plan-panel">
         <h2>プラン</h2>
-        <p class="plan-badge" id="plan-badge-mypage"></p>
+        <p class="plan-badge" id="plan-badge-mypage">現在のプラン: 確認中…</p>
         <p class="checkout-banner" id="checkout-banner" hidden></p>
         <p class="hint gated-note anon-only">ログインすると、参加人数を増やすプランを購入できます。</p>
         <div class="login-gated" hidden>

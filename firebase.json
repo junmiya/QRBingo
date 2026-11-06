@@ -27,6 +27,12 @@
       ".specify/**",
       ".github/**",
       "README.md"
+    ],
+    "headers": [
+      {
+        "source": "/lib/firebase/**",
+        "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }]
+      }
     ]
   },
   "emulators": {
