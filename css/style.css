@@ -318,6 +318,59 @@ button:focus-visible { outline: 3px solid var(--ring); outline-offset: 2px; }
 }
 .big-choice:active { transform: translateY(0); }
 
+/* ---------- トップページ ---------- */
+.choice-grid {
+  display: grid;
+  gap: 12px;
+  margin: 4px 0 20px;
+}
+.choice-grid .big-choice { margin: 0; }
+@media (min-width: 720px) {
+  .choice-grid { grid-template-columns: 1fr 1fr; }
+}
+.big-choice.primary {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 7%, var(--panel));
+}
+
+.feature-grid {
+  display: grid;
+  gap: 14px;
+}
+@media (min-width: 720px) {
+  .feature-grid { grid-template-columns: repeat(3, 1fr); }
+}
+.feature h3 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  color: var(--text);
+}
+.feature .hint { margin: 0; }
+
+.price-table td:not(:first-child),
+.price-table th:not(:first-child) { text-align: center; }
+.price-table td:first-child { font-weight: 800; }
+
+.link-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+.link-btn {
+  display: inline-block;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  color: var(--text);
+  font-weight: 700;
+  text-decoration: none;
+  background: var(--panel);
+}
+.link-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+details.fold > summary { font-size: 1rem; }
+
 /* ---------- 入力 ---------- */
 input[type="text"], input[type="email"], input[type="password"] {
   font: inherit;
