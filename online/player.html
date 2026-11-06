@@ -7,6 +7,7 @@
   <link rel="icon" href="../img/favicon.svg">
   <link rel="stylesheet" href="../css/style.css">
   <link rel="modulepreload" href="../js/online/tip-corner.js">
+  <link rel="modulepreload" href="../js/online/wincode.js">
   <!-- モジュールの依存を事前に並列取得(ページ→スクリプト→SDK の直列待ちをなくす) -->
   <link rel="modulepreload" href="../lib/firebase/firebase-app.js">
   <link rel="modulepreload" href="../lib/firebase/firebase-auth.js">
@@ -81,7 +82,8 @@
         <h2>あなたの順位</h2>
         <p class="rank-big"><span id="rank-value">-</span> 位</p>
         <div class="win-code-box" id="win-code-box" hidden>
-          <p class="hint" style="margin:0 0 6px">当選しました!この当選コードを主催者に伝えてください。</p>
+          <p class="hint" style="margin:0 0 6px">当選しました!この画面を主催者に見せてください。主催者が QR を読み取るか、当選コードで確認します。</p>
+          <div class="qr-box win-qr" id="win-qr" aria-label="当選コードのQR"></div>
           <p class="win-code" id="win-code"></p>
         </div>
         <p class="hint" id="rank-note"></p>

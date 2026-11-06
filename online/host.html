@@ -17,6 +17,9 @@
   <link rel="modulepreload" href="../js/online/host.js">
   <link rel="modulepreload" href="../js/online/live-extras.js">
   <link rel="modulepreload" href="../js/online/plan.js">
+  <link rel="modulepreload" href="../js/online/wincode.js">
+  <link rel="modulepreload" href="../js/online/win-scanner.js">
+  <link rel="modulepreload" href="../js/online/results-view.js">
   <link rel="modulepreload" href="../js/online/admin-link.js">
   <link rel="modulepreload" href="../js/online/admin-config.js">
   <script>
@@ -193,6 +196,10 @@
       <section class="panel" id="ranking-panel" hidden>
         <h2 id="ranking-title">暫定ランキング</h2>
         <p class="hint" id="ranking-note"></p>
+        <div class="btn-row results-tools" id="results-tools" hidden>
+          <button class="btn-primary" id="scan-win-btn" type="button" hidden>当選コードQRを読み取る</button>
+          <button class="btn-ghost" id="toggle-codes-btn" type="button">当選コードを表示</button>
+        </div>
         <div id="ranking-body" style="overflow-x:auto"></div>
       </section>
 
@@ -222,15 +229,6 @@
         </div>
       </section>
 
-      <!-- 主催したゲーム(履歴・戻る・終了) -->
-      <section class="panel" id="mygames-panel" hidden>
-        <details class="fold">
-          <summary>主催したゲーム(<span id="mygames-count">0</span>件)</summary>
-          <p class="hint">進行中のものに「戻る」、不要なものを「中止」できます。</p>
-          <div id="mygames-body"></div>
-        </details>
-      </section>
-
     </div>
 
 
@@ -256,6 +254,7 @@
   </footer>
 
   <script src="../lib/qrcode.js"></script>
+  <script src="../lib/jsQR.js"></script>
   <script src="../js/common.js"></script>
   <script type="module" src="../js/online/host.js"></script>
   <script type="module" src="../js/online/admin-link.js"></script>

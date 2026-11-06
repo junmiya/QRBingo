@@ -1,4 +1,4 @@
-// QRBingo オンライン — マイページ(アカウント・プラン)
+// QRBingo オンライン — マイページ(アカウント・主催したゲーム・プラン)
 import {
   ONLINE_AVAILABLE,
   ensureSignedIn,
@@ -8,8 +8,10 @@ import {
   signOutHost,
   callable,
   watchDocPath,
+  watchMyGames,
 } from './firebase-init.js';
 import { planSummary } from './plan.js';
+import { renderResultsTable, handleResultsClick, scanAndVerify, esc as escHtml } from './results-view.js';
 
 const $ = (id) => document.getElementById(id);
 const CURRENT_KEY = 'qrbingo:online:host:current'; // ホスト画面の表示中ゲーム(ログアウト時に消す)
@@ -203,6 +205,11 @@ async function handleLogout() {
 function resubscribeHostDocs(uid) {
   if (unwatchPlan) unwatchPlan();
   unwatchPlan = watchDocPath(['entitlements', uid], renderPlan);
+  if (unwatchGames) unwatchGames();
+  unwatchGames = watchMyGames(uid, (games) => {
+    myGames = games;
+    renderGames();
+  });
 }
 
 function renderPlan(ent) {
@@ -220,6 +227,11 @@ function renderLast() {
 
 // ---------- イベント登録 ----------
 $('upgrade-plans').addEventListener('click', handleUpgrade);
+$('mp-scan-btn').addEventListener('click', async () => {
+  await authReady;
+  scanAndVerify({ myUid });
+});
+$('mygames-body').addEventListener('click', handleGamesClick);
 $('login-btn').addEventListener('click', handleLogin);
 $('logout-btn').addEventListener('click', handleLogout);
 $('email-login-btn').addEventListener('click', handleEmailLogin);
@@ -255,4 +267,117 @@ function stripConnectParam() {
   if (!url.searchParams.has('connect')) return;
   url.searchParams.delete('connect');
   history.replaceState(null, '', url.toString());
+}
+
+// ---------- 主催したゲーム(一覧・ホスト画面で開く・中止・結果) ----------
+// ログイン中の主催者のみ表示(.login-gated)。結果は開いたゲームだけ購読する。
+const HOST_CURRENT_KEY = 'qrbingo:online:host:current'; // ホスト画面が開くゲーム
+const cancelGameFn = callable('cancelGame');
+const GAME_STATUS = { lobby: '受付中', playing: '進行中', finished: '終了(順位確定)', expired: '中止' };
+let unwatchGames = null;
+let myGames = [];
+let openGameId = null; // 結果を開いているゲーム
+let openResults = null;
+let unwatchOpenResults = null;
+let showCodesInMypage = false;
+
+function fmtDate(ts) {
+  if (!ts || !ts.toDate) return '';
+  const d = ts.toDate();
+  return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+function renderGames() {
+  const body = $('mygames-body');
+  const list = myGames.slice().sort((a, b) => {
+    const am = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0;
+    const bm = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0;
+    return bm - am; // 新しい順
+  });
+  if (list.length === 0) {
+    body.innerHTML = '<p class="hint">まだ主催したゲームはありません。</p>';
+    return;
+  }
+  const rows = list
+    .map((g) => {
+      const active = g.status === 'lobby' || g.status === 'playing';
+      const actions = active
+        ? `<button data-g="open" data-id="${g.id}">ホスト画面で開く</button><button data-g="cancel" data-id="${g.id}">中止</button>`
+        : g.status === 'finished'
+          ? `<button data-g="results" data-id="${g.id}">${openGameId === g.id ? '結果を閉じる' : '結果'}</button>`
+          : '';
+      const row = `<tr class="${openGameId === g.id ? 'is-open' : ''}">
+        <td><strong>${escHtml(g.id)}</strong></td>
+        <td>${GAME_STATUS[g.status] || escHtml(g.status)}</td>
+        <td class="hint">${fmtDate(g.createdAt)}</td>
+        <td>${g.participantCount || 0}人</td>
+        <td><div class="row-actions">${actions}</div></td>
+      </tr>`;
+      return openGameId === g.id ? row + `<tr class="results-row"><td colspan="5">${renderOpenResults()}</td></tr>` : row;
+    })
+    .join('');
+  body.innerHTML = `<table class="leaderboard games-table"><thead><tr>
+      <th>コード</th><th>状態</th><th>作成</th><th>参加</th><th></th>
+    </tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function renderOpenResults() {
+  if (!openResults) return '<p class="hint">結果を読み込み中…</p>';
+  const entries = openResults.entries || [];
+  if (entries.length === 0) return '<p class="hint">ビンゴ成立者はいませんでした。</p>';
+  return `<div class="btn-row results-tools">
+      <button class="btn-primary" data-g="scan" data-id="${openGameId}" type="button">このゲームの当選コードQRを読み取る</button>
+      <button class="btn-ghost" data-g="codes" type="button">${showCodesInMypage ? '当選コードを隠す' : '当選コードを表示'}</button>
+    </div>
+    <div class="results-table" data-game="${openGameId}">${renderResultsTable(entries, { gameId: openGameId, showCodes: showCodesInMypage })}</div>`;
+}
+
+function openResultsOf(id) {
+  if (unwatchOpenResults) unwatchOpenResults();
+  unwatchOpenResults = null;
+  openResults = null;
+  showCodesInMypage = false;
+  openGameId = openGameId === id ? null : id;
+  if (openGameId) {
+    unwatchOpenResults = watchDocPath(['games', openGameId, 'private', 'results'], (r) => {
+      openResults = r || { entries: [] };
+      renderGames();
+    });
+  }
+  renderGames();
+}
+
+async function handleGamesClick(ev) {
+  // 結果表の中のボタン(対応済み・非表示)
+  const table = ev.target.closest('.results-table');
+  if (table) return handleResultsClick(ev, table.dataset.game);
+  const btn = ev.target.closest('button[data-g]');
+  if (!btn) return;
+  const id = btn.dataset.id;
+  switch (btn.dataset.g) {
+    case 'open':
+      localStorage.setItem(HOST_CURRENT_KEY, JSON.stringify({ gameId: id }));
+      location.href = 'host.html';
+      break;
+    case 'cancel':
+      if (!confirm(`ゲーム ${id} を中止しますか?\n順位は確定されず、参加者の画面も「終了」になります。`)) return;
+      btn.disabled = true;
+      try {
+        await cancelGameFn({ gameId: id });
+      } catch (err) {
+        alert(err.message || String(err));
+        btn.disabled = false;
+      }
+      break;
+    case 'results':
+      openResultsOf(id);
+      break;
+    case 'codes':
+      showCodesInMypage = !showCodesInMypage;
+      renderGames();
+      break;
+    case 'scan':
+      scanAndVerify({ expectedGameId: id, myUid });
+      break;
+  }
 }

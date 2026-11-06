@@ -19,7 +19,7 @@ import {
   signInWithEmailAndPassword,
 } from '../../lib/firebase/firebase-auth.js';
 import {
-  getFirestore,
+  initializeFirestore,
   connectFirestoreEmulator,
   doc,
   collection,
@@ -59,7 +59,11 @@ const DEMO_CONFIG = {
 
 const app = initializeApp(IS_LOCAL ? DEMO_CONFIG : firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
+// 長時間接続(WebChannel のストリーミング)は、プロキシ・セキュリティソフト・一部の
+// モバイル回線で応答がバッファされ、更新が「次の更新が来るまで」届かないことがある
+// (抽選番号が次の抽選時に参加者へ届く現象)。ロングポーリングに固定して
+// 更新ごとに確実に届ける。自動判定(既定)では検出できない環境があるため常に固定する。
+const db = initializeFirestore(app, { experimentalForceLongPolling: true });
 const functions = getFunctions(app);
 
 if (IS_LOCAL) {
@@ -168,6 +172,12 @@ async function readGame(gameId) {
   return snap.exists() ? snap.data() : null;
 }
 
+// 任意のドキュメントを一度だけ読む。存在しなければ null。
+async function readDocPath(segments) {
+  const snap = await getDoc(doc(db, ...segments));
+  return snap.exists() ? snap.data() : null;
+}
+
 // このホストが主催する全ゲームを購読する({id, ...data} の配列。並びは呼び出し側)。
 // games の read は signedIn なら許可されるため、hostUid 等値クエリで取得できる。
 function watchMyGames(hostUid, onChange, onError) {
@@ -226,6 +236,7 @@ export {
   callable,
   watchGame,
   readGame,
+  readDocPath,
   watchMyGames,
   watchDocPath,
   watchCollectionPath,

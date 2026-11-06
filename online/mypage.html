@@ -16,6 +16,9 @@
   <link rel="modulepreload" href="../js/online/firebase-init.js">
   <link rel="modulepreload" href="../js/online/mypage.js">
   <link rel="modulepreload" href="../js/online/plan.js">
+  <link rel="modulepreload" href="../js/online/wincode.js">
+  <link rel="modulepreload" href="../js/online/win-scanner.js">
+  <link rel="modulepreload" href="../js/online/results-view.js">
   <link rel="modulepreload" href="../js/online/admin-link.js">
   <link rel="modulepreload" href="../js/online/admin-config.js">
 </head>
@@ -61,6 +64,19 @@
         <p class="hint error-text" id="account-error"></p>
       </section>
 
+      <!-- 主催したゲーム(一覧・ホスト画面で開く・中止・結果・当選コードQRの読み取り) -->
+      <section class="panel" id="games-panel">
+        <h2>主催したゲーム</h2>
+        <p class="hint gated-note anon-only">ログインすると、主催したゲームの一覧・結果の確認・当選コードQRの読み取りができます(ログイン後に作成したゲームが対象です)。</p>
+        <div class="login-gated" hidden>
+          <div class="btn-row">
+            <button class="btn-primary" id="mp-scan-btn" type="button">当選コードQRを読み取る</button>
+          </div>
+          <p class="hint">当選者の画面の QR を読み取ると、どのゲームの何位かを照合し、景品の受け渡しを「対応済み」にできます。</p>
+          <div id="mygames-body" style="overflow-x:auto"><p class="hint">読み込み中…</p></div>
+        </div>
+      </section>
+
       <!-- プラン(料金・現在のプラン・購入をここに集約) -->
       <section class="panel" id="plan-panel">
         <h2>プラン</h2>
@@ -102,6 +118,7 @@
     <a href="../legal/privacy.html">プライバシーポリシー</a>
   </footer>
 
+  <script src="../lib/jsQR.js"></script>
   <script type="module" src="../js/online/mypage.js"></script>
   <script type="module" src="../js/online/admin-link.js"></script>
   <script type="module" src="../js/online/tip-corner.js"></script>

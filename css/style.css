@@ -924,12 +924,13 @@ table.bingo.readonly td:hover:not(.marked) { transform: none; border-color: var(
 }
 .win-code {
   text-align: center;
-  font-size: 1.9rem;
+  /* 当選コードは途中で折り返さず1行で(読み上げ・照合しやすく)。画面幅に合わせて縮める */
+  font-size: clamp(1.1rem, 6.2vw, 1.9rem);
   font-weight: 900;
-  letter-spacing: .1em;
+  letter-spacing: .06em;
   color: color-mix(in srgb, var(--success) 82%, var(--text));
   margin: 0;
-  word-break: break-all;
+  white-space: nowrap;
 }
 
 /* ---------- ランキング表 ---------- */
@@ -1259,3 +1260,48 @@ dialog::backdrop { background: rgba(15, 20, 25, .55); backdrop-filter: blur(2px)
     transition-duration: .01ms !important;
   }
 }
+
+/* ---------- 当選コードの照合(QR 読み取り・対応済み) ---------- */
+.results-tools { margin: 8px 0 12px; flex-wrap: wrap; }
+.results-tools .btn-primary,
+.results-tools .btn-ghost { width: auto; }
+.handled-badge {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: .72rem;
+  font-weight: 800;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--text-secondary) 14%, transparent);
+  white-space: nowrap;
+}
+.handled-badge.done {
+  color: color-mix(in srgb, var(--success) 85%, var(--text));
+  background: color-mix(in srgb, var(--success) 16%, transparent);
+}
+.verify-result {
+  margin: 8px 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  line-height: 1.6;
+}
+.verify-result.ok {
+  background: color-mix(in srgb, var(--success) 12%, var(--panel));
+  border: 1px solid var(--success);
+}
+.verify-result.ng {
+  background: color-mix(in srgb, var(--primary) 10%, var(--panel));
+  border: 1px solid var(--primary);
+}
+#win-verify-dialog .btn-row { flex-wrap: wrap; }
+#win-verify-dialog .btn-row button { width: auto; }
+
+/* 当選者の画面の QR(主催者が読み取る) */
+.win-qr { margin: 8px auto 10px; width: min(220px, 60vw); }
+
+/* マイページの主催ゲーム一覧 */
+.games-table tr.is-open td { background: color-mix(in srgb, var(--primary) 6%, transparent); }
+.games-table tr.results-row > td { padding: 10px 6px 16px; }
+.games-table .row-actions { flex-wrap: wrap; }

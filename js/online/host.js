@@ -11,6 +11,7 @@ import {
 } from './firebase-init.js';
 import { watchAnnouncements, initChat, fmtCountdown } from './live-extras.js';
 import { planSummary } from './plan.js';
+import { renderResultsTable, handleResultsClick, tieBadge, scanAndVerify } from './results-view.js';
 
 const $ = (id) => document.getElementById(id);
 const CURRENT_KEY = 'qrbingo:online:host:current';
@@ -22,8 +23,6 @@ const cancelGameFn = callable('cancelGame');
 const startGameFn = callable('startGame');
 const drawNumberFn = callable('drawNumber');
 const finishGameFn = callable('finishGame');
-const hideNicknameFn = callable('hideNickname');
-const markWinnerHandledFn = callable('markWinnerHandled');
 
 const BALL_COLORS = ['var(--col-b)', 'var(--col-i)', 'var(--col-n)', 'var(--col-g)', 'var(--col-o)'];
 const ballColor = (n) => BALL_COLORS[Math.floor((n - 1) / 15)];
@@ -47,6 +46,9 @@ let chatUnwatch = null; // チャット購読(有効化時に開始)
 let hostCountdownTimer = null; // ホスト側カウントダウン表示の更新
 let chatCurrentlyEnabled = false;
 let latestMyGames = []; // 主催したゲーム(進行中ゲームへの「戻る」バナー用)
+let isLoggedIn = false; // ログイン中の主催者だけ当選コード QR の読み取りを使える
+let showCodes = false; // 当選コードは既定で伏せる
+let latestResults = null;
 let drawBtnVisible = true; // 抽選ボタンが画面内にあるか(ドック表示の判定)
 
 function esc(s) {
@@ -199,40 +201,10 @@ const STATUS_LABEL = {
   expired: '中止',
 };
 
+// 主催ゲームの一覧・結果の管理はマイページで行う。ここでは「戻る」バナー用に保持するだけ。
 function renderMyGames(games) {
-  const panel = $('mygames-panel');
   latestMyGames = games || [];
   renderActiveBanner();
-  const list = latestMyGames.slice().sort((a, b) => {
-    const am = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0;
-    const bm = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0;
-    return bm - am; // 新しい順
-  });
-  if (list.length === 0) {
-    panel.hidden = true;
-    return;
-  }
-  panel.hidden = false;
-  $('mygames-count').textContent = list.length;
-  const rows = list
-    .map((g) => {
-      const active = g.status === 'lobby' || g.status === 'playing';
-      const label = STATUS_LABEL[g.status] || g.status;
-      const back =
-        active && g.id !== gameId ? `<button data-act="back" data-id="${g.id}">戻る</button>` : '';
-      const end = active ? `<button data-act="end" data-id="${g.id}">中止</button>` : '';
-      return `<tr class="${g.id === gameId ? 'is-winner' : ''}">
-        <td><strong>${esc(g.id)}</strong></td>
-        <td>${label}</td>
-        <td>${g.participantCount || 0}人</td>
-        <td><div class="row-actions">${back}${end}</div></td>
-      </tr>`;
-    })
-    .join('');
-  $('mygames-body').innerHTML =
-    `<table class="leaderboard"><thead><tr>
-       <th>コード</th><th>状態</th><th>参加</th><th></th>
-     </tr></thead><tbody>${rows}</tbody></table>`;
 }
 
 // 表示していない進行中ゲームがあれば、ゲームタブ上部に「戻る」バナーを出す。
@@ -250,26 +222,6 @@ function renderActiveBanner() {
   banner.dataset.id = active.id;
   $('active-game-text').textContent =
     `${active.id}(${STATUS_LABEL[active.status]}・参加 ${active.participantCount || 0}人)`;
-}
-
-async function handleMyGamesClick(ev) {
-  const btn = ev.target.closest('button[data-act]');
-  if (!btn) return;
-  const id = btn.dataset.id;
-  if (btn.dataset.act === 'back') {
-    attachToGame(id);
-  } else if (btn.dataset.act === 'end') {
-    if (!confirm(`ゲーム ${id} を終了(中止)しますか?\n順位は確定されず、参加者の画面も「終了」になります。`)) return;
-    btn.disabled = true;
-    try {
-      await cancelGameFn({ gameId: id });
-      // 一覧は購読で自動更新される。表示中のゲームなら画面もリセット。
-      if (id === gameId) clearGameView();
-    } catch (err) {
-      alert(err.message || String(err));
-      btn.disabled = false;
-    }
-  }
 }
 
 // ---------- 進行描画 ----------
@@ -466,22 +418,29 @@ function onLeaderboard(lb) {
 
 function onResults(results) {
   if (!results || !results.entries) return;
+  latestResults = results;
   $('ranking-panel').hidden = false;
   $('ranking-title').textContent = '確定ランキング';
   if (results.entries.length === 0) {
     $('ranking-note').textContent = 'ビンゴ成立者はいませんでした。';
     $('ranking-body').innerHTML = '';
+    $('results-tools').hidden = true;
     return;
   }
-  $('ranking-note').textContent = results.tieBreakApplied
-    ? '同着があったため一部は抽選で決定しました(当選コードを当選者に照合してください)。'
-    : '当選コードを当選者に照合して景品をお渡しください。';
-  renderFinal(results.entries);
+  $('ranking-note').textContent =
+    (results.tieBreakApplied ? '同着があったため一部は抽選で決定しました。' : '') +
+    (isLoggedIn
+      ? '当選者の画面の QR を「当選コードQRを読み取る」で照合し、景品をお渡しください。'
+      : '当選者の画面の当選コードと照合して、景品をお渡しください(ログインすると QR で照合できます)。');
+  renderResultsTools();
+  $('ranking-body').innerHTML = renderResultsTable(results.entries, { gameId, showCodes });
 }
 
-// 同着(同じ球目でビンゴ)の表示。順位は同じで、景品数を超える場合のみ終了時に抽選。
-function tieBadge(e) {
-  return e.tied ? ' <span class="tie-badge">同率</span>' : '';
+// 当選コードの表示切替と QR 読み取り(読み取りはログイン中のみ)
+function renderResultsTools() {
+  $('results-tools').hidden = false;
+  $('toggle-codes-btn').textContent = showCodes ? '当選コードを隠す' : '当選コードを表示';
+  $('scan-win-btn').hidden = !isLoggedIn;
 }
 
 function renderProvisional(entries) {
@@ -497,32 +456,6 @@ function renderProvisional(entries) {
   $('ranking-body').innerHTML =
     `<table class="leaderboard"><thead><tr>
        <th>順位</th><th>ニックネーム</th><th>成立</th>
-     </tr></thead><tbody>${rows}</tbody></table>`;
-}
-
-function renderFinal(entries) {
-  const rows = entries
-    .map((e) => {
-      const cardId = `${gameId}_${e.uid}`;
-      const winCell = e.isWinner
-        ? `<span class="wincode-cell">${esc(e.winCode)}</span>`
-        : '<span class="hint">—</span>';
-      const handleBtn = e.isWinner
-        ? `<button data-action="handle" data-winner="${cardId}" data-handled="${e.handled ? '1' : '0'}">${e.handled ? '取消' : '対応済'}</button>`
-        : '';
-      const hideBtn = `<button data-action="hide" data-card="${cardId}" data-hidden="${e.nicknameHidden ? '1' : '0'}">${e.nicknameHidden ? '再表示' : '非表示'}</button>`;
-      return `<tr class="${e.isWinner ? 'is-winner' : ''} ${e.handled ? 'handled' : ''}">
-        <td class="rank-col">${e.rank}${tieBadge(e)}</td>
-        <td>${esc(e.nickname)}${e.nicknameHidden ? ' <span class="hint">(伏字中)</span>' : ''}</td>
-        <td>${e.achievedBallIndex}球目</td>
-        <td>${winCell}</td>
-        <td><div class="row-actions">${handleBtn}${hideBtn}</div></td>
-      </tr>`;
-    })
-    .join('');
-  $('ranking-body').innerHTML =
-    `<table class="leaderboard"><thead><tr>
-       <th>順位</th><th>ニックネーム</th><th>成立</th><th>当選コード</th><th></th>
      </tr></thead><tbody>${rows}</tbody></table>`;
 }
 
@@ -581,32 +514,6 @@ async function handleFinish() {
   }
 }
 
-// ランキング表内のボタン(対応済み・非表示)をイベント委譲で処理
-async function handleRankingClick(ev) {
-  const btn = ev.target.closest('button[data-action]');
-  if (!btn) return;
-  btn.disabled = true;
-  try {
-    if (btn.dataset.action === 'handle') {
-      await markWinnerHandledFn({
-        gameId,
-        winnerId: btn.dataset.winner,
-        handled: btn.dataset.handled !== '1',
-      });
-    } else if (btn.dataset.action === 'hide') {
-      await hideNicknameFn({
-        gameId,
-        cardId: btn.dataset.card,
-        hidden: btn.dataset.hidden !== '1',
-      });
-    }
-    // 変更は購読(onResults / onLeaderboard)で再描画される
-  } catch (err) {
-    alert(err.message || String(err));
-    btn.disabled = false;
-  }
-}
-
 function clearGameView() {
   if (unwatch) unwatch();
   if (unwatchLeaderboard) unwatchLeaderboard();
@@ -622,6 +529,9 @@ function clearGameView() {
   localStorage.removeItem(CURRENT_KEY);
   $('create-error').textContent = '';
   $('ranking-panel').hidden = true;
+  $('results-tools').hidden = true;
+  showCodes = false;
+  latestResults = null;
   $('reach-panel').hidden = true;
   $('chat-panel').hidden = true;
   showPanel('create-panel');
@@ -646,7 +556,12 @@ $('create-btn').addEventListener('click', handleCreate);
 $('start-btn').addEventListener('click', handleStart);
 $('draw-btn').addEventListener('click', handleDraw);
 $('finish-btn').addEventListener('click', handleFinish);
-$('ranking-body').addEventListener('click', handleRankingClick);
+$('ranking-body').addEventListener('click', (ev) => handleResultsClick(ev, gameId));
+$('toggle-codes-btn').addEventListener('click', () => {
+  showCodes = !showCodes;
+  if (latestResults) onResults(latestResults);
+});
+$('scan-win-btn').addEventListener('click', () => scanAndVerify({ expectedGameId: gameId, myUid }));
 $('new-game-btn').addEventListener('click', clearGameView);
 $('dock-draw-btn').addEventListener('click', handleDraw);
 $('active-game-back').addEventListener('click', () => {
@@ -661,7 +576,6 @@ if ('IntersectionObserver' in window) {
 }
 $('cancel-lobby-btn').addEventListener('click', handleCancel);
 $('cancel-playing-btn').addEventListener('click', handleCancel);
-$('mygames-body').addEventListener('click', handleMyGamesClick);
 document.querySelectorAll('.chat-toggle').forEach((b) => b.addEventListener('click', handleChatToggle));
 $('countdown-start').addEventListener('click', handleCountdownStart);
 $('countdown-stop').addEventListener('click', handleCountdownStop);
@@ -703,6 +617,11 @@ function applyUser(u) {
   const chip = $('account-chip');
   chip.textContent = u.isAnonymous ? 'ゲスト(未ログイン)' : u.email || u.displayName || 'ログイン中';
   chip.classList.toggle('signed-in', !u.isAnonymous);
+  const loggedIn = !u.isAnonymous;
+  if (loggedIn !== isLoggedIn) {
+    isLoggedIn = loggedIn;
+    if (latestResults) onResults(latestResults);
+  }
   if (u.uid !== lastUid) {
     lastUid = u.uid;
     resubscribeHostDocs(u.uid);

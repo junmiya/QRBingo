@@ -11,6 +11,7 @@ import {
 } from './firebase-init.js';
 import { watchAnnouncements, initChat, fmtCountdown } from './live-extras.js';
 import { setTipGame } from './tip-corner.js';
+import { winQrText } from './wincode.js';
 
 const $ = (id) => document.getElementById(id);
 const LAST_GAME_KEY = 'qrbingo:online:player:last';
@@ -290,6 +291,8 @@ function onWinnerSnapshot(winner) {
   $('rank-note').textContent = 'おめでとうございます!確定順位です';
   $('win-code-box').hidden = false;
   $('win-code').textContent = winner.winCode;
+  // 主催者がカメラで読み取って照合できるよう、当選コードを QR でも表示する
+  $('win-qr').innerHTML = QRB.qrSvg(winQrText(currentGameId, winner.winCode), 4);
 }
 
 // ---------- 描画 ----------
