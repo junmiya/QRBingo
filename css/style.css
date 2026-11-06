@@ -198,6 +198,10 @@ header.app-header {
   color: var(--text-secondary);
   font-size: .95rem;
   margin: 8px 0 0;
+  /* 全ページでヘッダーの高さをそろえる(メニュー位置がずれないよう常に1行) */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 footer.app-footer {
@@ -477,10 +481,12 @@ label.hint { display: block; }
 /* ---------- ホスト画面: タブ・アカウント表示 ---------- */
 .tab { position: relative; }
 
+.account-row { margin: 0 0 12px; }
+#host-main > .account-row { grid-column: 1 / -1; }
 .account-chip {
   display: inline-block;
   text-decoration: none;
-  margin-top: 10px;
+  margin-top: 0;
   padding: 6px 14px;
   width: auto;
   border-radius: 999px;

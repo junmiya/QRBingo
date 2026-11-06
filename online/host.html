@@ -42,8 +42,7 @@
 <body>
   <header class="app-header">
     <h1 class="logo"><a href="../index.html"><img src="../img/logo.svg" alt="QRBingo" width="264" height="80"></a></h1>
-    <p class="tagline">ホスト画面(オンラインモード)</p>
-    <a class="account-chip" id="account-chip" href="mypage.html" hidden>ゲスト(未ログイン)</a>
+    <p class="tagline">ホスト画面(オンライン)</p>
   </header>
 
   <main>
@@ -58,6 +57,9 @@
     <p id="conn-status" class="hint" style="text-align:center">接続中…</p>
 
     <div id="host-main" hidden>
+      <!-- ログイン状態(押すとマイページ)。ヘッダーの高さを全ページでそろえるためメニューの下に置く -->
+      <p class="account-row"><a class="account-chip" id="account-chip" href="mypage.html" hidden>ゲスト(未ログイン)</a></p>
+
 
       <!-- 進行中のゲームがあるのに表示していないとき(戻る導線) -->
       <section class="panel resume-banner" id="active-game-banner" hidden>
