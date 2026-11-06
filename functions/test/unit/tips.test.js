@@ -7,9 +7,14 @@ const {
   validateTipAmount,
   normalizeRate,
   computeApplicationFee,
+  TIPS_TO_HOST_ENABLED,
 } = require('../../src/lib/tips');
 
 describe('投げ銭ロジック (spec 002・Phase B)', () => {
+  test('現時点では投げ銭は運営のみが受領する(主催者への分配は無効)', () => {
+    expect(TIPS_TO_HOST_ENABLED).toBe(false);
+  });
+
   test('既定の運営手数料率は50%', () => {
     expect(DEFAULT_COMMISSION_RATE).toBe(0.5);
   });

@@ -5,6 +5,7 @@ const { FieldValue } = require('firebase-admin/firestore');
 const { db } = require('./admin');
 const { newGameId } = require('./lib/ids');
 const { getEntitlement } = require('./lib/entitlements');
+const { TIPS_TO_HOST_ENABLED } = require('./lib/tips');
 
 const DEFAULTS = {
   winLines: 1,
@@ -83,16 +84,18 @@ exports.createGame = onCall(async (request) => {
   const chatEnabled = Boolean(input.chatEnabled);
   const countdownEnabled = Boolean(input.countdownEnabled);
 
-  // 投げ銭(Phase B): 常に受け付ける。ホストが Connect 接続済みなら投げ銭はホストへ
-  // (運営手数料を差し引いて)送金され、未接続なら 100% 運営に入る。
-  // tipsToHost はプレイヤー表示の文言(ホスト応援 / 運営応援)を正直にするためのフラグ。
+  // 投げ銭: 常に受け付ける。現時点ではすべて運営が受領する(TIPS_TO_HOST_ENABLED=false)。
+  // 有効化時のみ、ホストが Connect 接続済みなら手数料を差し引いてホストへ送金する。
+  // tipsToHost は送金先の記録用(表示はプレイヤー側で「運営を応援」に統一)。
   const tipsEnabled = true;
   let tipsToHost = false;
-  try {
-    const acct = await db.doc(`hostAccounts/${request.auth.uid}`).get();
-    tipsToHost = !!(acct.exists && acct.data().chargesEnabled);
-  } catch (e) {
-    tipsToHost = false;
+  if (TIPS_TO_HOST_ENABLED) {
+    try {
+      const acct = await db.doc(`hostAccounts/${request.auth.uid}`).get();
+      tipsToHost = !!(acct.exists && acct.data().chargesEnabled);
+    } catch (e) {
+      tipsToHost = false;
+    }
   }
 
   for (let attempt = 0; attempt < MAX_GAME_ID_ATTEMPTS; attempt++) {

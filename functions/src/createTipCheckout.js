@@ -8,7 +8,12 @@
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { defineSecret } = require('firebase-functions/params');
 const { db } = require('./admin');
-const { validateTipAmount, computeApplicationFee, DEFAULT_COMMISSION_RATE } = require('./lib/tips');
+const {
+  validateTipAmount,
+  computeApplicationFee,
+  DEFAULT_COMMISSION_RATE,
+  TIPS_TO_HOST_ENABLED,
+} = require('./lib/tips');
 
 const STRIPE_SECRET_KEY = defineSecret('STRIPE_SECRET_KEY');
 
@@ -50,11 +55,13 @@ exports.createTipCheckout = onCall({ secrets: [STRIPE_SECRET_KEY] }, async (requ
   if (!gameSnap.exists) throw new HttpsError('not-found', 'ゲームが見つかりません');
   const hostUid = gameSnap.data().hostUid;
 
-  // ホストが Stripe Connect を接続済みかどうかで振り分ける:
+  // 現時点では投げ銭はすべて運営が受領する(TIPS_TO_HOST_ENABLED=false)。
+  // 有効化した場合のみ、Stripe Connect 接続済みのホストへ振り分ける:
   //  - 接続済み  : destination charge。ホストへ送金し、運営は手数料(既定50%)を受領。
   //  - 未接続    : 通常課金(送金なし)。投げ銭は 100% 運営に入る。
-  const acctSnap = await db.doc(`hostAccounts/${hostUid}`).get();
+  const acctSnap = TIPS_TO_HOST_ENABLED ? await db.doc(`hostAccounts/${hostUid}`).get() : null;
   const connected = !!(
+    acctSnap &&
     acctSnap.exists &&
     acctSnap.data().stripeAccountId &&
     acctSnap.data().chargesEnabled

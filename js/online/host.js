@@ -345,11 +345,12 @@ function renderGame(game) {
     return;
   }
 
-  // 投げ銭の集計(受取ベース)。件数があれば進行画面に表示する。
+  // 投げ銭の集計(現時点ではすべて運営への応援)。件数があれば進行画面に表示する。
   const tipNote = $('tip-total-note');
   if (game.tipsEnabled && (game.tipCount || 0) > 0) {
     tipNote.hidden = false;
-    tipNote.textContent = `投げ銭: ${game.tipCount}件 / ホスト受取 ¥${(game.tipTotalNet || 0).toLocaleString()}`;
+    const total = game.tipTotalAmount != null ? game.tipTotalAmount : game.tipTotalNet || 0;
+    tipNote.textContent = `投げ銭(運営への応援): ${game.tipCount}件 / 合計 ¥${total.toLocaleString()}`;
   } else {
     tipNote.hidden = true;
   }

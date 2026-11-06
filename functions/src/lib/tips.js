@@ -6,6 +6,11 @@
 // - 運営手数料率は可変(既定 50%)。config/tips.commissionRate で上書き可能。
 
 const DEFAULT_COMMISSION_RATE = 0.5; // 既定 50%(可変)
+
+// 現時点では投げ銭は運営のみが受領する(主催者への分配なし)。
+// true にすると、Stripe Connect を接続済みの主催者へ手数料を差し引いて送金する
+// 従来の動作に戻る(接続 UI もマイページに戻すこと)。
+const TIPS_TO_HOST_ENABLED = false;
 const TIP_PRESETS = [100, 300, 500, 1000]; // 提示する金額(円)
 const TIP_MIN = 100; // JPY の最低(Stripe 最低は¥50だが下限を100に)
 const TIP_MAX = 50000;
@@ -31,6 +36,7 @@ function computeApplicationFee(amount, rate) {
 
 module.exports = {
   DEFAULT_COMMISSION_RATE,
+  TIPS_TO_HOST_ENABLED,
   TIP_PRESETS,
   TIP_MIN,
   TIP_MAX,

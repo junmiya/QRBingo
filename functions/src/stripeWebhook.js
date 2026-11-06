@@ -93,10 +93,14 @@ async function handleTip(session) {
       hostUid: md.hostUid || null,
       at: Timestamp.fromMillis(now),
     });
-    // ゲームに集計(ホスト受取ベース net と件数)。配信画面での表示にも使える。
+    // ゲームに集計(総額・ホスト受取 net・件数)。配信画面での表示にも使える。
     tx.set(
       gameRef,
-      { tipTotalNet: FieldValue.increment(net), tipCount: FieldValue.increment(1) },
+      {
+        tipTotalAmount: FieldValue.increment(amount),
+        tipTotalNet: FieldValue.increment(net),
+        tipCount: FieldValue.increment(1),
+      },
       { merge: true }
     );
     tx.set(procRef, { kind: 'tip', gameId, amount, fee, sessionId: session.id, at: Timestamp.fromMillis(now) });

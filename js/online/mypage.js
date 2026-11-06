@@ -1,4 +1,4 @@
-// QRBingo オンライン — マイページ(アカウント・プラン・投げ銭の受け取り設定)
+// QRBingo オンライン — マイページ(アカウント・プラン)
 import {
   ONLINE_AVAILABLE,
   ensureSignedIn,
@@ -15,8 +15,6 @@ const $ = (id) => document.getElementById(id);
 const CURRENT_KEY = 'qrbingo:online:host:current'; // ホスト画面の表示中ゲーム(ログアウト時に消す)
 
 const createCheckoutFn = callable('createCheckout');
-const createConnectAccountFn = callable('createConnectAccount');
-const refreshConnectStatusFn = callable('refreshConnectStatus');
 
 let myUid = null;
 // 認証の準備(匿名サインイン)。画面は待たずに表示し、操作の直前にだけ待つ。
@@ -24,7 +22,7 @@ let authReady = null;
 
 // ---------- 前回の表示内容(この端末のみ) ----------
 // マイページは別ページなので、開くたびに SDK の読み込み・ログイン確認・DB 接続が走る。
-// その間も前回の内容(ログイン中のメール・プラン・受け取り状態)を即座に表示し、
+// その間も前回の内容(ログイン中のメール・プラン)を即座に表示し、
 // 最新データが届いたら上書きする。ログアウトで消去する。
 const LAST_KEY = 'qrbingo:mypage:last';
 function loadLast() {
@@ -41,9 +39,8 @@ function saveLast(patch) {
     /* 保存できない環境では毎回最新を待つだけ */
   }
 }
-let isAnon = true; // 課金・投げ銭受け取りはログイン必須(匿名では不可)
+let isAnon = true; // プラン購入はログイン必須(匿名では不可)
 let unwatchPlan = null;
-let unwatchConnect = null;
 
 function esc(s) {
   return String(s).replace(/[&<>"']/g, (c) =>
@@ -98,73 +95,6 @@ function showCheckoutBanner() {
   history.replaceState(null, '', location.pathname + (q ? '?' + q : ''));
 }
 
-// ---------- 投げ銭の受け取り設定(Stripe Connect) ----------
-function renderConnect(acct) {
-  saveLast({
-    connect: acct ? { chargesEnabled: !!acct.chargesEnabled, stripeAccountId: !!acct.stripeAccountId } : null,
-  });
-  const text = $('connect-status-text');
-  const btn = $('connect-btn');
-  if (acct && acct.chargesEnabled) {
-    text.textContent = '受け取り可能です。作成したゲームで参加者から投げ銭を受け取れます。';
-    btn.hidden = true;
-  } else if (acct && acct.stripeAccountId) {
-    text.textContent = '接続手続きが未完了です。続きから設定してください。';
-    btn.hidden = false;
-    btn.textContent = '接続手続きを続ける';
-  } else {
-    text.textContent = 'まだ接続されていません。投げ銭を受け取るには Stripe で口座を接続してください。';
-    btn.hidden = false;
-    btn.textContent = 'Stripeで受け取り口座を接続';
-  }
-}
-
-async function handleConnect() {
-  await authReady;
-  $('connect-error').textContent = '';
-  if (isAnon) {
-    $('connect-error').textContent = '投げ銭を受け取るには、上の「アカウント」からログインしてください（受取設定を端末間で保持するため必須です）。';
-    $('account-panel').scrollIntoView({ behavior: 'smooth', block: 'center' });
-    return;
-  }
-  $('connect-btn').disabled = true;
-  try {
-    const res = await createConnectAccountFn({ origin: location.origin });
-    if (res && res.url) {
-      location.href = res.url; // Stripe のオンボーディングへ
-    } else {
-      $('connect-error').textContent = '接続ページを開けませんでした。';
-      $('connect-btn').disabled = false;
-    }
-  } catch (err) {
-    $('connect-error').textContent = err.message || String(err);
-    $('connect-btn').disabled = false;
-  }
-}
-
-// オンボーディングからの戻り(?connect=return|refresh)で最新状態を取得する。
-async function handleConnectReturn() {
-  const state = new URLSearchParams(location.search).get('connect');
-  if (!state) return;
-  const banner = $('connect-banner');
-  try {
-    const res = await refreshConnectStatusFn({});
-    banner.hidden = false;
-    if (res && res.chargesEnabled) {
-      banner.className = 'checkout-banner ok';
-      banner.textContent = '接続が完了しました。投げ銭を受け取れます。';
-    } else {
-      banner.className = 'checkout-banner';
-      banner.textContent = '接続はまだ完了していません。手続きを最後まで進めてください。';
-    }
-  } catch (e) {
-    /* 状態は購読で反映される */
-  }
-  const url = new URL(location.href);
-  url.searchParams.delete('connect');
-  history.replaceState(null, '', url.toString());
-}
-
 // ---------- アカウント(ログイン) ----------
 // 認証状態を画面に反映する。匿名アカウントをそのまま昇格(link)した場合は UID が
 // 変わらないため onAuthStateChanged が発火しない。ログイン成功時にも直接呼ぶ。
@@ -187,7 +117,7 @@ function renderAuth(user) {
   const logoutBtn = $('logout-btn');
   if (isAnon) {
     status.innerHTML =
-      '未ログインです。<strong>プラン購入・投げ銭の受け取りにはログインが必要</strong>です。';
+      '未ログインです。<strong>プランの購入にはログインが必要</strong>です。';
     loginBtn.hidden = false;
     logoutBtn.hidden = true;
     $('email-login').hidden = false;
@@ -198,7 +128,7 @@ function renderAuth(user) {
     logoutBtn.hidden = false;
     $('email-login').hidden = true;
   }
-  // ログインが必要な操作(プラン購入・投げ銭の受け取り)は、ログイン後のみUIを表示
+  // ログインが必要な操作(プラン購入)は、ログイン後のみUIを表示
   document.querySelectorAll('.login-gated').forEach((el) => {
     el.hidden = isAnon;
   });
@@ -269,12 +199,10 @@ async function handleLogout() {
   }
 }
 
-// ログインUID変更時に、そのUIDのプラン・投げ銭接続状態を購読し直す。
+// ログインUID変更時に、そのUIDのプランを購読し直す。
 function resubscribeHostDocs(uid) {
   if (unwatchPlan) unwatchPlan();
   unwatchPlan = watchDocPath(['entitlements', uid], renderPlan);
-  if (unwatchConnect) unwatchConnect();
-  unwatchConnect = watchDocPath(['hostAccounts', uid], renderConnect);
 }
 
 function renderPlan(ent) {
@@ -288,12 +216,10 @@ function renderLast() {
   if (!last) return;
   if ('email' in last) renderAuth(last.email ? { isAnonymous: false, email: last.email } : null);
   if (last.planText) $('plan-badge-mypage').textContent = last.planText;
-  if ('connect' in last) renderConnect(last.connect);
 }
 
 // ---------- イベント登録 ----------
 $('upgrade-plans').addEventListener('click', handleUpgrade);
-$('connect-btn').addEventListener('click', handleConnect);
 $('login-btn').addEventListener('click', handleLogin);
 $('logout-btn').addEventListener('click', handleLogout);
 $('email-login-btn').addEventListener('click', handleEmailLogin);
@@ -317,8 +243,16 @@ $('login-pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') hand
 
   // 決済からの戻り(?checkout=success|cancel)の案内
   showCheckoutBanner();
-  // 投げ銭 Connect オンボーディングからの戻り(?connect=...)
-  handleConnectReturn();
+  stripConnectParam();
 
   onUser(applyUser);
 })();
+
+// 以前の口座接続(Stripe Connect)からの戻り(?connect=...)は、受け取り機能の停止中は
+// 表示するものがないため URL から消すだけにする。
+function stripConnectParam() {
+  const url = new URL(location.href);
+  if (!url.searchParams.has('connect')) return;
+  url.searchParams.delete('connect');
+  history.replaceState(null, '', url.toString());
+}

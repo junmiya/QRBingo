@@ -55,7 +55,7 @@
           </div>
         </div>
 
-        <p class="hint">参加者はログイン不要です。ログインが必要なのは<strong>プラン購入・投げ銭の受け取りをする主催者</strong>だけ。ログインするとプランや設定が端末をまたいで引き継がれます。</p>
+        <p class="hint">参加者はログイン不要です。ログインが必要なのは<strong>プランを購入する主催者</strong>だけ。ログインするとプランや設定が端末をまたいで引き継がれます。</p>
         <p class="hint">ログイン・購入をもって <a href="../legal/terms.html" target="_blank" rel="noopener">利用規約</a>・<a href="../legal/privacy.html" target="_blank" rel="noopener">プライバシーポリシー</a>・<a href="../legal/tokushoho.html" target="_blank" rel="noopener">特商法表記</a> に同意したものとみなします。</p>
         <p class="hint error-text" id="account-error"></p>
       </section>
@@ -87,20 +87,6 @@
         <p class="hint error-text" id="upgrade-error"></p>
       </section>
 
-      <!-- 投げ銭の受け取り設定(Stripe Connect・ホスト単位) -->
-      <section class="panel" id="tips-setup-panel">
-        <h2>投げ銭の受け取り設定</h2>
-        <p class="checkout-banner" id="connect-banner" hidden></p>
-        <p class="hint gated-note anon-only">ログインすると、参加者からの投げ銭(応援)を受け取る口座を設定できます。未設定の場合、投げ銭は運営の収益になります。</p>
-        <div class="login-gated" hidden>
-          <p class="hint" id="connect-status-text">確認中…</p>
-          <div class="btn-row" style="margin-top:8px">
-            <button class="btn-primary" id="connect-btn" hidden>Stripeで受け取り口座を接続</button>
-          </div>
-          <p class="hint">接続すると、あなたが作成したゲームの参加者から「投げ銭(応援)」を受け取れます。運営手数料は50%、Stripe手数料は運営が負担します。入金・本人確認は Stripe が行います。</p>
-        </div>
-        <p class="hint error-text" id="connect-error"></p>
-      </section>
     </div>
 
   </main>

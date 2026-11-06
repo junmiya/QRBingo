@@ -5,6 +5,7 @@ import {
   ONLINE_AVAILABLE,
   ensureSignedIn,
   callable,
+  readGame,
   watchGame,
   watchDocPath,
 } from './firebase-init.js';
@@ -63,7 +64,15 @@ async function resolveAndJoin(gameId) {
     onJoined(res);
   } catch (err) {
     if (errCode(err) === 'invalid-argument') {
+      // サーバーはゲームの有無より先にニックネームを確認するため、ここで存在を確かめる。
+      // 無いゲームならニックネームを聞かずにすぐ「見つかりません」を出す。
+      const game = await readGame(gameId).catch(() => undefined);
+      if (game === null) {
+        showError({ code: 'not-found', message: 'ゲームが見つかりません。ゲームコードを確認してください。' });
+        return;
+      }
       showOnly('nickname-panel');
+      showTipCorner(true); // 参加前の視聴者も応援できる
       $('in-nickname').focus();
     } else {
       showError(err);
@@ -94,6 +103,13 @@ async function submitNickname() {
 function showError(err) {
   $('error-message').textContent = err.message || String(err);
   showOnly('error-panel');
+  // 定員超過・終了済みなどでもゲーム自体はあるので、投げ銭コーナーは出す
+  showTipCorner(errCode(err) !== 'not-found');
+}
+
+// 投げ銭コーナー(最下部)。ゲームが存在すれば参加の有無にかかわらず誰でも送れる。
+function showTipCorner(show) {
+  $('tip-panel').hidden = !(show && currentGameId);
 }
 
 function onJoined(res) {
@@ -103,6 +119,7 @@ function onJoined(res) {
   $('game-label').textContent = currentGameId;
   $('nickname-label').textContent = 'ニックネーム: ' + res.nickname;
   showOnly('game-area');
+  showTipCorner(true);
 
   if (unwatch) unwatch();
   unwatch = watchGame(currentGameId, onGameSnapshot);
@@ -220,19 +237,6 @@ function onGameSnapshot(game) {
   registerArrivals(latestDraws, ((game.settings && game.settings.revealDelaySec) || 0) * 1000);
   scheduleRevealTimers(latestDraws);
   renderCard();
-  // 投げ銭: 常に表示可(勝敗に無関係・いつでも送れる)。送金先で文言を正直に切替。
-  $('tip-panel').hidden = !game.tipsEnabled;
-  if (game.tipsEnabled) {
-    if (game.tipsToHost) {
-      $('tip-title').textContent = 'ホストを応援(投げ銭)';
-      $('tip-desc').textContent =
-        '勝敗には関係ありません。主催者への「応援」として送れます。決済は Stripe(安全な外部決済)で行われ、カード情報はこのサイトには保存されません。';
-    } else {
-      $('tip-title').textContent = '運営を応援(投げ銭)';
-      $('tip-desc').textContent =
-        '勝敗には関係ありません。このゲームの主催者は受け取り設定をしていないため、いただいた応援は運営(アプリ提供者)への支援になります。決済は Stripe で行われ、カード情報はこのサイトには保存されません。';
-    }
-  }
   updateChat(game);
   updateCountdown(game);
 }
@@ -479,6 +483,7 @@ $('error-retry-btn').addEventListener('click', () => {
   url.searchParams.delete('g');
   history.replaceState(null, '', url.toString());
   showOnly('gamecode-panel');
+  showTipCorner(false);
 });
 
 // ---------- 初期化 ----------

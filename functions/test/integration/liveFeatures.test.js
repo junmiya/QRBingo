@@ -180,6 +180,15 @@ describe('投げ銭の既定 (integration)', () => {
     expect(game.tipsEnabled).toBe(true);
     expect(game.tipsToHost).toBe(false);
   });
+
+  test('Stripe 接続済みのホストでも、現時点では投げ銭は運営のみ(tipsToHost=false)', async () => {
+    const host = uid();
+    await db.doc(`hostAccounts/${host}`).set({ stripeAccountId: 'acct_test', chargesEnabled: true });
+    const { gameId } = await createGame.run({ data: {}, auth: { uid: host } });
+    const game = (await db.doc(`games/${gameId}`).get()).data();
+    expect(game.tipsEnabled).toBe(true);
+    expect(game.tipsToHost).toBe(false);
+  });
 });
 
 describe('カウントダウン setCountdown (integration)', () => {
