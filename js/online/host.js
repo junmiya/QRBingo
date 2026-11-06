@@ -81,7 +81,7 @@ function showPanel(name) {
 
 // ---------- タブ(ゲーム / マイページ / 運営) ----------
 function setTab(name) {
-  document.querySelectorAll('#host-tabs .tab').forEach((t) => {
+  document.querySelectorAll('#host-tabs button.tab').forEach((t) => {
     const on = t.dataset.tab === name;
     t.classList.toggle('active', on);
     t.setAttribute('aria-selected', on ? 'true' : 'false');
@@ -793,7 +793,7 @@ $('active-game-back').addEventListener('click', () => {
   const id = $('active-game-banner').dataset.id;
   if (id) attachToGame(id);
 });
-document.querySelectorAll('#host-tabs .tab').forEach((t) =>
+document.querySelectorAll('#host-tabs button.tab').forEach((t) =>
   t.addEventListener('click', () => setTab(t.dataset.tab))
 );
 $('account-chip').addEventListener('click', () => setTab('mypage'));
