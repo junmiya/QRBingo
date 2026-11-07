@@ -1,7 +1,7 @@
 # QRBingo 🎱
 
 QRコードで参加できる、**サーバー不要**の75球ビンゴゲーム。
-静的ファイルだけで動作するため、GitHub Pages などにそのまま公開できます。
+静的ファイルだけで動作するため、任意の静的ホストにそのまま公開できます。
 
 ## あそびかた
 
@@ -42,9 +42,11 @@ python3 -m http.server 8000
 
 > **Note:** ビンゴ検証のカメラ読み取り(`getUserMedia`)は `localhost` または HTTPS 環境でのみ動作します。カメラが使えない環境でも、カードIDの手入力で検証できます。
 
-## 公開方法(GitHub Pages)
+## 公開方法
 
-リポジトリの Settings → Pages → Branch にこのブランチ(またはmain)のルートを指定するだけで公開できます。
+本番は Firebase Hosting(https://qrbingo.web.app)です。このブランチへのプッシュで
+GitHub Actions(`.github/workflows/firebase-deploy.yml`)が自動デプロイします。
+手順の詳細は [DEPLOY.md](DEPLOY.md) を参照してください。
 
 ## オンラインモード(v2: リアルタイム配信ビンゴ)
 

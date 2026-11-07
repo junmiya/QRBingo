@@ -4,7 +4,7 @@ QRBingo には 2 つのモードがあり、デプロイ要件が異なります
 
 | モード | 必要なもの | 公開先の例 |
 |---|---|---|
-| **v1 オフライン** | なし(静的ファイルのみ) | GitHub Pages / 任意の静的ホスト |
+| **v1 オフライン** | なし(静的ファイルのみ) | Firebase Hosting(v2 と同じデプロイに含まれる)/ 任意の静的ホスト |
 | **v2 オンライン** | Firebase プロジェクト(Firestore + Functions + 匿名認証) | Firebase Hosting |
 
 ---
@@ -216,19 +216,13 @@ SA を作れる場合はこちらでも可(推奨・より安全)。
 
 ---
 
-## v1(オフラインモード)だけをすぐ公開する
+## v1(オフラインモード)の公開
 
-Firebase 不要。**GitHub Pages** が最短です。
+v1 の静的ファイル(`index.html` `host.html` `player.html` `css/` `js/` `lib/`)は、
+上記の Firebase Hosting へのデプロイに含まれます(`https://qrbingo.web.app/host.html` 等)。
+公開は `.github/workflows/firebase-deploy.yml` によるプッシュ時の自動デプロイに一本化しています。
 
-1. リポジトリの **Settings → Pages → Build and deployment → Source** を
-   **「GitHub Actions」**に設定(1回だけ)
-2. `.github/workflows/deploy-pages.yml` が push 時に自動デプロイします
-   (手動再実行も可)
-3. 公開 URL: `https://<ユーザー名>.github.io/QRBingo/`
-
-> Pages のソース設定は、セキュリティ上 CI トークンでは自動化できないため、
-> 最初の1回だけ手動での切り替えが必要です。設定後はプッシュで自動更新されます。
-
-この方法では v1 は完全動作し、v2 のページは「Firebase の設定が必要」と
-案内表示になります(バックエンド未接続のため)。v2 も公開したい場合は
-上記の Firebase 手順を実施してください。
+> 以前あった GitHub Pages への自動デプロイ(`deploy-pages.yml`)は、Pages が未有効で
+> 一度も成功していなかったため削除しました。v1 だけを別の静的ホストに置く場合は、
+> 上記の静的ファイルをそのまま配置すれば動作します(v2 のページは Firebase の
+> 設定が必要との案内表示になります)。
